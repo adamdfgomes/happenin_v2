@@ -13,6 +13,8 @@ interface GameSessionContextType {
   setTableNumber: (num: string) => void;
   selectedGame: string;
   setSelectedGame: (game: string) => void;
+  startTime: string;  // Add startTime here
+  setStartTime: (time: string) => void;  // Add setStartTime here
 }
 
 export const GameSessionContext = createContext<GameSessionContextType | undefined>(undefined);
@@ -24,6 +26,7 @@ export const GameSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [pubName, setPubName] = useState<string>('');
   const [tableNumber, setTableNumber] = useState<string>('');
   const [selectedGame, setSelectedGame] = useState<string>('');
+  const [startTime, setStartTime] = useState<string>(''); // Initialize with an empty string or null
 
   return (
     <GameSessionContext.Provider
@@ -33,7 +36,8 @@ export const GameSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
         groupType, setGroupType,
         pubName, setPubName,
         tableNumber, setTableNumber,
-        selectedGame, setSelectedGame
+        selectedGame, setSelectedGame,
+        startTime, setStartTime
       }}
     >
       {children}

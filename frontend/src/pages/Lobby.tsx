@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Button from '../components/Button';
@@ -13,7 +13,21 @@ const Lobby: React.FC = () => {
   const [selectedPub, setSelectedPub] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const { pubs, loading, error } = usePubs();
-  const { setTeamId } = useGameSession();
+  const { setTeamId, setStartTime } = useGameSession(); // Use setStartTime from context
+
+  useEffect(() => {
+    if (selectedPub && pubs.length) {
+      const pubDetails = pubs.find((pub) => pub.name === selectedPub);
+
+      if (pubDetails && pubDetails.start_time) {
+        const [hours, minutes, seconds] = pubDetails.start_time.split(':').map((str) => parseInt(str, 10));
+        const currentDate = new Date();
+        currentDate.setHours(hours, minutes, seconds, 0); // Set today's date with pub start time
+        const formattedStartTime = currentDate.toISOString(); // Store it in ISO string format
+        setStartTime(formattedStartTime); // Set start time in context
+      }
+    }
+  }, [selectedPub, pubs, setStartTime]);
 
   if (loading) {
     return (
@@ -23,6 +37,7 @@ const Lobby: React.FC = () => {
       </main>
     );
   }
+
   if (error) {
     return (
       <main className="min-h-screen …">
@@ -31,46 +46,43 @@ const Lobby: React.FC = () => {
       </main>
     );
   }
+
   const pubOptions = pubs.map((pub: { id: string; name: string }) => ({
     value: pub.name,
-    label: pub.name
+    label: pub.name,
   }));
 
   const handleStartGame = async () => {
-  // 1. Validate both fields before doing anything
-  if (!selectedPub) {
-    alert('Please select a pub before starting');
-    return;
-  }
-  if (!tableNumber.trim()) {
-    alert('Please enter a table number before starting');
-    return;
-  }
+    if (!selectedPub) {
+      alert('Please select a pub before starting');
+      return;
+    }
+    if (!tableNumber.trim()) {
+      alert('Please enter a table number before starting');
+      return;
+    }
 
-  // 2. Attempt to post, then navigate on success
-  try {
-    const created = await postTeamData(selectedPub, tableNumber);
-    setTeamId(created.team_id);
-    setSelectedPub(created.pub_name);
-    setTableNumber(created.table_number);
-    nav('/team');
-
-  } catch (error) {
-    console.error('Error posting team data:', error);
-    alert('Failed to start game. Please try again.');
-  }
-};
-  
+    try {
+      const created = await postTeamData(selectedPub, tableNumber);
+      setTeamId(created.team_id);
+      setSelectedPub(created.pub_name);
+      setTableNumber(created.table_number);
+      nav('/team');
+    } catch (error) {
+      console.error('Error posting team data:', error);
+      alert('Failed to start game. Please try again.');
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex flex-col items-center justify-center text-white p-4">
-      <img 
-        src="/images/logov1.png" 
-        alt="Happenin Logo" 
+      <img
+        src="/images/logov1.png"
+        alt="Happenin Logo"
         className="w-64 h-auto mb-2"
       />
       <Header title="Welcome to Mingle" subtitle="Get started by setting up your teams" />
-      
+
       <div className="w-full max-w-md space-y-4 mb-6">
         <Select
           options={pubOptions}
@@ -89,7 +101,7 @@ const Lobby: React.FC = () => {
         />
       </div>
 
-      <Button 
+      <Button
         onClick={handleStartGame}
         disabled={!selectedPub || !tableNumber}
       >

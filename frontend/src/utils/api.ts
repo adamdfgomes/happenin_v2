@@ -66,14 +66,6 @@ export const updateTeamName = async (
     const err = await res.text();
     throw new Error(`Failed to update team name: ${err}`);
   }
-};
 
 
-/**
- * (Optional) Retrieve list of pubs for dropdowns, etc.
- */
-export const getPubs = async (): Promise<{ id: string; name: string }[]> => {
-  const res = await fetch('/api/pubs');
-  if (!res.ok) throw new Error('Failed to fetch pubs');
-  return res.json();
 };

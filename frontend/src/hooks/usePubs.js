@@ -11,7 +11,7 @@ const usePubs = () => {
       try {
         const { data, error } = await supabase
           .from('pubs')
-          .select('id, name')
+          .select('id, name, start_time')
           .eq('active', true);
 
         if (error) throw error;

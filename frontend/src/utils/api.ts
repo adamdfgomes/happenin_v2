@@ -1,28 +1,22 @@
-  // src/utils/api.ts
-
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 /**
- * Create a new team record in the backend.
- * @param selectedPub  ID of the pub.
- * @param tableNumber  Table number at the pub.
+ * Fetch a single team (including session_id) by its UUID.
  */
-export const postTeamData = async (
-  selectedPub: string,
-  tableNumber: string
+export async function getTeamData(
+  teamId: string
 ): Promise<{
   team_id: string;
   pub_name: string;
   table_number: string;
   created_at: string;
-}> => {
-  const res = await fetch('/api/teams', {
-    method: 'POST',
+  group_type?: string;
+  team_name?: string;
+  session_id?: string;
+}> {
+  const res = await fetch(`/api/teams/${teamId}`, {
+    method: 'GET',
     headers: JSON_HEADERS,
-    body: JSON.stringify({
-      pub_name: selectedPub,
-      table_number: tableNumber,
-    }),
   });
 
   if (!res.ok) {
@@ -30,18 +24,79 @@ export const postTeamData = async (
     throw new Error(`API error (${res.status}): ${errorBody}`);
   }
 
-  // backend returns an array of inserted rows; take the first
   const data = await res.json();
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(`Team ${teamId} not found`);
+  }
   return data[0];
- };
+}
 
 /**
-* Patch a team’s group_type
-*/
-export const updateTeamGroupType = async (
+ * Fetch a team by pub name and table number.
+ */
+export async function getTeamByPubAndTable(
+  pubName: string,
+  tableNumber: number
+): Promise<{
+  team_id: string;
+  pub_name: string;
+  table_number: string;
+  created_at: string;
+}> {
+  const query = new URLSearchParams({ pub_name: pubName, table_number: String(tableNumber) });
+  const res = await fetch(`/api/teams?${query.toString()}`, {
+    method: 'GET',
+    headers: JSON_HEADERS,
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`API error (${res.status}): ${errorBody}`);
+  }
+
+  const data = await res.json();
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(
+      `No team found for pub ${pubName} at table ${tableNumber}`
+    );
+  }
+  return data[0];
+}
+
+/**
+ * Create a new team record in the backend.
+ */
+export async function postTeamData(
+  selectedPub: string,
+  tableNumber: number
+): Promise<{
+  team_id: string;
+  pub_name: string;
+  table_number: string;
+  created_at: string;
+}> {
+  const res = await fetch('/api/teams', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ pub_name: selectedPub, table_number: tableNumber }),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`API error (${res.status}): ${errorBody}`);
+  }
+
+  const data = await res.json();
+  return data[0];
+}
+
+/**
+ * Patch a team's group_type.
+ */
+export async function updateTeamGroupType(
   teamId: string,
   groupType: string
-): Promise<void> => {
+): Promise<void> {
   const res = await fetch(`/api/teams/${teamId}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
@@ -51,12 +106,15 @@ export const updateTeamGroupType = async (
     const err = await res.text();
     throw new Error(`Failed to update group type: ${err}`);
   }
-};
+}
 
-export const updateTeamName = async (
+/**
+ * Patch a team's team_name.
+ */
+export async function updateTeamName(
   teamId: string,
   teamName: string
-): Promise<void> => {
+): Promise<void> {
   const res = await fetch(`/api/teams/${teamId}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
@@ -66,6 +124,39 @@ export const updateTeamName = async (
     const err = await res.text();
     throw new Error(`Failed to update team name: ${err}`);
   }
+}
 
+/**
+ * Fetch a session’s current selected_game.
+ */
+export async function getSessionData(
+  sessionId: string
+): Promise<{ session_id: string; selected_game?: string }> {
+  const res = await fetch(`/api/sessions/${sessionId}`, {
+    method: 'GET',
+    headers: JSON_HEADERS,
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to fetch session: ${err}`);
+  }
+  return res.json();
+}
 
-};
+/**
+ * Persist the selected game for a session.
+ */
+export async function updateSessionGame(
+  sessionId: string,
+  selected_game: string
+): Promise<void> {
+  const res = await fetch(`/api/sessions/${sessionId}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ selected_game }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to update session: ${err}`);
+  }
+}

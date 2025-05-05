@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Button from '../components/Button';
-import useGameSession from '../hooks/useGameSession';
+import { useGameSession } from '../context/GameSessionContext';
 import { updateTeamName } from '../utils/api';
 
 const TeamNameSetup: React.FC = () => {
@@ -17,7 +17,7 @@ const TeamNameSetup: React.FC = () => {
     try {
       // write the user’s choice into your teams table
       await updateTeamName(teamId, choice.trim());
-      // also keep it locally
+      setTeamName(choice.trim());
       nav('/waiting');
     } catch (err) {
       console.error('Failed to update team_name:', err);

@@ -6,7 +6,7 @@ import Select from '../components/Select';
 import NumberInput from '../components/NumberInput';
 import usePubs from '../hooks/usePubs';
 import { postTeamData } from '../utils/api';
-import useGameSession from '../hooks/useGameSession';
+import { useGameSession } from '../context/GameSessionContext';
 
 const Lobby: React.FC = () => {
   const nav = useNavigate();
@@ -67,7 +67,7 @@ const Lobby: React.FC = () => {
       setTeamId(created.team_id);
       setSelectedPub(created.pub_name);
       setTableNumber(created.table_number);
-      nav('/team');
+      nav('/group');
     } catch (error) {
       console.error('Error posting team data:', error);
       alert('Failed to start game. Please try again.');

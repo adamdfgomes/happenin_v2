@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Button from '../components/Button';
-import useGameSession from '../hooks/useGameSession';
+import { useGameSession } from '../context/GameSessionContext';
 import { updateTeamGroupType } from '../utils/api';
 
 const TeamSetup: React.FC = () => {
@@ -21,7 +21,7 @@ const TeamSetup: React.FC = () => {
       await updateTeamGroupType(teamId, choice);
       // also keep it locally
       setGroupType(choice);
-      nav('/name');
+      nav('/team');
      } catch (err) {
       console.error('Failed to update group_type:', err);
       alert('Could not save your selection. Please try again.');

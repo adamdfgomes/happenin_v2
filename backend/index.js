@@ -1,10 +1,8 @@
-// backend/index.js
-
 import dotenv from 'dotenv';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { supabase } from './supabaseClient.js';
+import { supabase } from './utils/supabaseClient.js';
 
 // Polyfill for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -21,6 +19,33 @@ app.use(express.json());
 // Health check endpoint
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK' });
+});
+
+// --- Team endpoints ---
+// GET /api/teams?pub_name=…&table_number=…
+app.get('/api/teams', async (req, res) => {
+  const { pub_name, table_number } = req.query;
+  if (!pub_name || !table_number) {
+    return res
+      .status(400)
+      .json({ error: 'Missing query params: pub_name and table_number are required' });
+  }
+  try {
+    const { data, error, status } = await supabase
+      .from('teams')
+      .select()
+      .eq('pub_name', pub_name)
+      .eq('table_number', table_number);
+
+    if (error) {
+      console.error('[GET /api/teams] Supabase error:', { status, error });
+      return res.status(status || 500).json({ error: error.message });
+    }
+    return res.json(data);
+  } catch (err) {
+    console.error('[GET /api/teams] unexpected error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Create a new team record
@@ -47,6 +72,26 @@ app.post('/api/teams', async (req, res) => {
   } catch (err) {
     console.error('Unexpected error:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/teams/:teamId
+app.get('/api/teams/:teamId', async (req, res) => {
+  const { teamId } = req.params;
+  try {
+    const { data, error, status } = await supabase
+      .from('teams')
+      .select()
+      .eq('team_id', teamId);
+
+    if (error) {
+      console.error('[GET /api/teams/:teamId] Supabase error:', { status, error });
+      return res.status(status || 500).json({ error: error.message });
+    }
+    return res.json(data);
+  } catch (err) {
+    console.error('[GET /api/teams/:teamId] unexpected error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -79,6 +124,54 @@ app.patch('/api/teams/:teamId', async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error('[PATCH /api/teams] unexpected error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// --- Session endpoints ---
+// GET /api/sessions/:sessionId
+app.get('/api/sessions/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  try {
+    const { data, error, status } = await supabase
+      .from('sessions')
+      .select('session_id, selected_game')
+      .eq('session_id', sessionId)
+      .single();
+
+    if (error) {
+      console.error('[GET /api/sessions/:sessionId] Supabase error:', { status, error });
+      return res.status(status || 500).json({ error: error.message });
+    }
+    return res.json(data);
+  } catch (err) {
+    console.error('[GET /api/sessions/:sessionId] unexpected error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH /api/sessions/:sessionId
+app.patch('/api/sessions/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const { selected_game } = req.body;
+
+  if (!selected_game) {
+    return res.status(400).json({ error: 'selected_game is required' });
+  }
+
+  try {
+    const { error, status } = await supabase
+      .from('sessions')
+      .update({ selected_game })
+      .eq('session_id', sessionId);
+
+    if (error) {
+      console.error('[PATCH /api/sessions/:sessionId] Supabase error:', { status, error });
+      return res.status(status || 500).json({ error: error.message });
+    }
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('[PATCH /api/sessions/:sessionId] unexpected error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

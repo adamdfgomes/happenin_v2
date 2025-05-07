@@ -1,5 +1,5 @@
 // src/hooks/useFetchSelectedGame.js
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getSessionData } from '../utils/api';
 import supabase from '../utils/supabasePublicClient';
 import { useGameSession } from '../context/GameSessionContext';
@@ -13,24 +13,22 @@ export default function useFetchSelectedGame() {
     setStartTime,
     setPlayer1Id,
     setPlayer2Id,
-    setPlayer1Ready,
-    setPlayer2Ready,
+    setPlayer1Ready,   // added
+    setPlayer2Ready,   // added
   } = useGameSession();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Ref to hold debounce timer
-  const debounceRef = useRef(null);
-
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
-    // apply updates in batch
-    const applyUpdate = async (payload) => {
+    const handleUpdate = async ({ new: payload }) => {
       const {
         selected_game,
         player_1,
@@ -47,7 +45,6 @@ export default function useFetchSelectedGame() {
       if (player1_ready !== undefined) setPlayer1Ready(player1_ready);
       if (player2_ready !== undefined) setPlayer2Ready(player2_ready);
 
-      // fetch team names
       if (player_1) {
         const { data: t1 } = await supabase
           .from('teams')
@@ -66,15 +63,7 @@ export default function useFetchSelectedGame() {
       }
     };
 
-    // Debounced handler for real-time updates
-    const debouncedHandler = ({ new: payload }) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        applyUpdate(payload);
-      }, 50);
-    };
-
-    // Subscribe to real-time session updates
+    // Subscribe to realtime session updates
     const channel = supabase
       .channel(`session_${sessionId}`)
       .on(
@@ -85,20 +74,21 @@ export default function useFetchSelectedGame() {
           table: 'sessions',
           filter: `session_id=eq.${sessionId}`
         },
-        debouncedHandler
+        handleUpdate
       )
       .subscribe();
 
     // Initial fetch
     getSessionData(sessionId)
-      .then((session) => applyUpdate(session))
+      .then(async session => {
+        await handleUpdate({ new: session });
+      })
       .catch(err => setError(err.message || 'Fetch failed'))
       .finally(() => setLoading(false));
 
     // Cleanup
     return () => {
       supabase.removeChannel(channel);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [
     sessionId,
@@ -108,8 +98,8 @@ export default function useFetchSelectedGame() {
     setStartTime,
     setPlayer1Id,
     setPlayer2Id,
-    setPlayer1Ready,
-    setPlayer2Ready,
+    setPlayer1Ready,   // added
+    setPlayer2Ready,   // added
   ]);
 
   return { loading, error };

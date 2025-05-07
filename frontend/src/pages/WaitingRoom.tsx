@@ -1,0 +1,116 @@
+// src/pages/WaitingRoom.tsx
+import React, { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import Header from '../components/Header'
+import { useGameSession } from '../context/GameSessionContext'
+import useFetchSessionID from '../hooks/useFetchSessionID'
+
+const WaitingRoom: React.FC = () => {
+  // 1) get startTime & teamId from context
+  const { startTime, teamId } = useGameSession()
+  // 2) fetch sessionId once we have a teamId
+  const { sessionId, loading: sessionLoading, error: sessionError } = useFetchSessionID()
+
+  const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const [invalidStartTime, setInvalidStartTime] = useState(false)
+  const navigate = useNavigate()
+  const intervalRef = useRef<number | null>(null)
+
+  // -- Countdown effect (no navigation) --
+  useEffect(() => {
+    if (!startTime) return
+
+    const startDate = new Date(startTime)
+    if (isNaN(startDate.getTime())) {
+      setInvalidStartTime(true)
+      return
+    }
+
+    const tick = () => {
+      const diff = startDate.getTime() - Date.now()
+      if (diff <= 0) {
+        setTimeLeft(0)
+        if (intervalRef.current !== null) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
+      } else {
+        setTimeLeft(diff)
+      }
+    }
+
+    tick()
+    intervalRef.current = window.setInterval(tick, 1000)
+    return () => {
+      if (intervalRef.current !== null) clearInterval(intervalRef.current)
+    }
+  }, [startTime])
+
+  // -- Redirect effect: only when countdown done AND sessionId is present --
+  useEffect(() => {
+    if (timeLeft === 0 && sessionId) {
+      navigate(`/landing/${sessionId}`)
+    }
+  }, [timeLeft, sessionId, navigate])
+
+  if (sessionError) {
+    return (
+      <main className="min-h-screen bg-red-900 flex flex-col items-center justify-center text-white p-4">
+        <Header title="Error" />
+        <p className="mt-6 text-xl text-red-300">{sessionError}</p>
+      </main>
+    )
+  }
+
+  // -- startTime validation error --
+  if (!startTime || invalidStartTime) {
+    return (
+      <main className="min-h-screen bg-red-900 flex flex-col items-center justify-center text-white p-4">
+        <Header title="Error" />
+        <p className="mt-6 text-xl text-red-300">
+          Invalid or missing start time. Please try again later.
+        </p>
+      </main>
+    )
+  }
+
+  // -- Helper to format ms → hh:mm:ss --
+  const formatTime = (ms: number) => {
+    const hrs = Math.floor(ms / 3_600_000)
+    const mins = Math.floor((ms % 3_600_000) / 60_000)
+    const secs = Math.floor((ms % 60_000) / 1000)
+    return `${hrs.toString().padStart(2, '0')}:` +
+           `${mins.toString().padStart(2, '0')}:` +
+           `${secs.toString().padStart(2, '0')}`
+  }
+
+  // -- Main UI --
+  return (
+    <main className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white p-4">
+      <Header title="Hold Tight!" />
+
+      <div className="mt-10 flex flex-col items-center gap-6">
+        <div className="text-5xl font-mono tracking-widest">
+          {timeLeft == null
+            ? 'Loading...'
+            : timeLeft > 0
+            ? formatTime(timeLeft)
+            : sessionId
+            ? 'Game starting now!'
+            : 'Waiting for a match...'}
+        </div>
+        <p className="text-xl font-semibold text-center">
+          {timeLeft == null
+            ? ''
+            : timeLeft > 0
+            ? 'Waiting for the games to begin'
+            : sessionId
+            ? 'Get ready for the game!'
+            : 'We’ll redirect as soon as a match is found.'}
+        </p>
+      </div>
+    </main>
+  )
+}
+
+export default WaitingRoom

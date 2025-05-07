@@ -18,8 +18,8 @@ export default function useFetchSessionID() {
   const debounceRef = useRef(null)
 
   useEffect(() => {
-    // Only run when we have both teamId and teamName
-    if (!teamId || !teamName) {
+    // Only run when we have teamId
+    if (!teamId) {
       setLoading(false)
       return
     }
@@ -77,7 +77,7 @@ export default function useFetchSessionID() {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       if (channel) supabase.removeChannel(channel)
     }
-  }, [teamId, teamName, setSessionId])
+  }, [teamId, setSessionId])
 
   return { sessionId, loading, error }
 }

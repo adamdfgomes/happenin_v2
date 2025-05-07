@@ -1,5 +1,4 @@
-// src/components/Wheel.tsx
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useGameSession } from '../context/GameSessionContext'
 
 interface WheelProps {
@@ -9,71 +8,64 @@ interface WheelProps {
 
 const Wheel: React.FC<WheelProps> = ({ options, onSpinComplete }) => {
   const { selectedGame } = useGameSession()
-  const [rotation, setRotation] = useState(0)
-  const segmentAngle = 360 / options.length
-  const wheelRef = useRef<HTMLDivElement>(null)
+  const [highlightIndex, setHighlightIndex] = useState<number | null>(null)
+  const [spinComplete, setSpinComplete] = useState(false)
 
   useEffect(() => {
     if (!selectedGame) return
 
-    // Compute how far to spin
-    const idx = options.indexOf(selectedGame)
-    const fullSpins = 5
-    const finalAngle =
-      fullSpins * 360 + (360 - idx * segmentAngle - segmentAngle / 2)
+    setSpinComplete(false)
+    const targetIdx = options.indexOf(selectedGame)
+    const cycles = 3
+    const totalSteps = cycles * options.length + targetIdx
+    let currentStep = 0
+    let interval = 100
+    const timeouts: ReturnType<typeof setTimeout>[] = []
 
-    setRotation(finalAngle)
+    const scheduleStep = () => {
+      const idx = currentStep % options.length
+      setHighlightIndex(idx)
+      currentStep++
 
-    const el = wheelRef.current
-    let cleanedUp = false
-
-    const handleTransitionEnd = () => {
-      if (cleanedUp) return
-      cleanedUp = true
-      onSpinComplete?.()
+      if (currentStep <= totalSteps) {
+        interval += 20
+        timeouts.push(setTimeout(scheduleStep, interval))
+      } else {
+        setSpinComplete(true)
+        onSpinComplete?.()
+      }
     }
 
-    // Listen for the CSS transition to end
-    el?.addEventListener('transitionend', handleTransitionEnd)
-
-    // Fallback: in case transitionend doesn't fire
-    const timeout = setTimeout(handleTransitionEnd, 5200)
+    scheduleStep()
 
     return () => {
-      cleanedUp = true
-      el?.removeEventListener('transitionend', handleTransitionEnd)
-      clearTimeout(timeout)
+      timeouts.forEach(clearTimeout)
     }
-  }, [selectedGame, options, segmentAngle, onSpinComplete])
+  }, [selectedGame, options, onSpinComplete])
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative">
-        <div
-          ref={wheelRef}
-          className="w-64 h-64 rounded-full border-4 border-gray-300 transition-transform duration-[5000ms] ease-out"
-          style={{ transform: `rotate(${rotation}deg)` }}
-        >
-          {options.map((opt, i) => {
-            const angle = i * segmentAngle
-            return (
-              <div
-                key={opt}
-                className="absolute left-1/2 top-1/2"
-                style={{
-                  transform: `rotate(${angle}deg) translate(0, -120px) rotate(-${angle}deg)`,
-                  transformOrigin: 'center center',
-                }}
-              >
-                <span className="block w-24 text-center text-sm">{opt}</span>
-              </div>
-            )
-          })}
-        </div>
-        <div className="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="triangle-up" />
-        </div>
+      <div className="flex space-x-4">
+        {options.map((opt, i) => {
+          const isHighlighted = i === highlightIndex
+          const isSelected = opt === selectedGame && spinComplete
+          return (
+            <div
+              key={opt}
+              className={
+                `px-4 py-2 rounded-lg border transition-all` +
+                (isHighlighted ? ' bg-blue-200 scale-110' : '') +
+                (isSelected ? ' animate-pulse bg-green-200 text-green-800 font-bold' : '')
+              }
+            >
+              {opt}
+            </div>
+          )
+        })}
       </div>
+      {!spinComplete && selectedGame && (
+        <div className="mt-4 text-white italic">Choosing...</div>
+      )}
     </div>
   )
 }

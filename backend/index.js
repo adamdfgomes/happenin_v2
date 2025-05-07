@@ -1,3 +1,4 @@
+// index.js (backend)
 import dotenv from 'dotenv';
 import express from 'express';
 import path from 'path';
@@ -22,6 +23,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // --- Team endpoints ---
+
 // GET /api/teams?pub_name=…&table_number=…
 app.get('/api/teams', async (req, res) => {
   const { pub_name, table_number } = req.query;
@@ -95,7 +97,7 @@ app.get('/api/teams/:teamId', async (req, res) => {
   }
 });
 
-// Update one or more fields on a team
+// PATCH /api/teams/:teamId
 app.patch('/api/teams/:teamId', async (req, res) => {
   const { teamId } = req.params;
   const { team_name, group_type } = req.body;
@@ -114,7 +116,7 @@ app.patch('/api/teams/:teamId', async (req, res) => {
       .from('teams')
       .update(updateData)
       .eq('team_id', teamId)
-      .select(); // return the updated row
+      .select();
 
     if (error) {
       console.error('[PATCH /api/teams] Supabase error:', { status, error });
@@ -129,13 +131,14 @@ app.patch('/api/teams/:teamId', async (req, res) => {
 });
 
 // --- Session endpoints ---
+
 // GET /api/sessions/:sessionId
 app.get('/api/sessions/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   try {
     const { data, error, status } = await supabase
       .from('sessions')
-      .select('session_id, selected_game')
+      .select('session_id, selected_game, player1_ready, player2_ready')
       .eq('session_id', sessionId)
       .single();
 
@@ -153,23 +156,32 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
 // PATCH /api/sessions/:sessionId
 app.patch('/api/sessions/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
-  const { selected_game } = req.body;
+  const { selected_game, player1_ready, player2_ready } = req.body;
 
-  if (!selected_game) {
-    return res.status(400).json({ error: 'selected_game is required' });
+  // Build a dynamic update object
+  const updateData = {};
+  if (selected_game !== undefined) updateData.selected_game = selected_game;
+  if (player1_ready !== undefined) updateData.player1_ready = player1_ready;
+  if (player2_ready !== undefined) updateData.player2_ready = player2_ready;
+
+  if (Object.keys(updateData).length === 0) {
+    return res.status(400).json({ error: 'No valid fields provided to update' });
   }
 
   try {
-    const { error, status } = await supabase
+    const { data, error, status } = await supabase
       .from('sessions')
-      .update({ selected_game })
-      .eq('session_id', sessionId);
+      .update(updateData)
+      .eq('session_id', sessionId)
+      .select()
+      .single();
 
     if (error) {
       console.error('[PATCH /api/sessions/:sessionId] Supabase error:', { status, error });
       return res.status(status || 500).json({ error: error.message });
     }
-    res.sendStatus(204);
+
+    res.json(data);
   } catch (err) {
     console.error('[PATCH /api/sessions/:sessionId] unexpected error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -180,7 +192,7 @@ app.patch('/api/sessions/:sessionId', async (req, res) => {
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Handle API 404s
-app.use('/api/*', (req, res) => {
+app.use('/api/*', (_req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
 

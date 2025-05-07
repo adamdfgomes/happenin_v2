@@ -19,13 +19,17 @@ const GameWheel: React.FC = () => {
   // Only navigate _after_ the wheel tells us it’s done
   const handleSpinComplete = React.useCallback(() => {
     if (selectedGame && sessionId) {
-      nav(`/${selectedGame}/${sessionId}`)
+      // Wait 2s, then navigate
+      setTimeout(() => {
+        nav(`/${selectedGame}/${sessionId}`)
+      }, 3000)
     }
   }, [nav, selectedGame, sessionId])
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex flex-col items-center justify-center text-white p-4">
       <Header title="Spin the Wheel" subtitle="Game time!" />
+
       <Wheel options={options} onSpinComplete={handleSpinComplete} />
     </main>
   )

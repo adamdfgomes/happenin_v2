@@ -28,7 +28,7 @@ const GameWheel: React.FC = () => {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex flex-col items-center justify-center text-white p-4">
-      <Header title="Spin the Wheel" subtitle="Game time!" />
+      <Header title="Selecting your game" subtitle="Game time!" />
 
       <Wheel options={options} onSpinComplete={handleSpinComplete} />
     </main>

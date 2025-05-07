@@ -13,21 +13,20 @@ export default function useFetchSelectedGame() {
     setStartTime,
     setPlayer1Id,
     setPlayer2Id,
-    setPlayer1Ready,   // added
-    setPlayer2Ready,   // added
+    setPlayer1Ready,
+    setPlayer2Ready,
   } = useGameSession();
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
 
   useEffect(() => {
-    if (!sessionId) {
-      return;
-    }
+    if (!sessionId) return;
 
     setLoading(true);
     setError(null);
 
+    // 1) Handler for any realtime UPDATEs
     const handleUpdate = async ({ new: payload }) => {
       const {
         selected_game,
@@ -39,12 +38,13 @@ export default function useFetchSelectedGame() {
       } = payload;
 
       if (selected_game) setSelectedGame(selected_game);
-      if (start_time) setStartTime(start_time);
-      if (player_1) setPlayer1Id(player_1);
-      if (player_2) setPlayer2Id(player_2);
+      if (start_time)     setStartTime(start_time);
+      if (player_1)       setPlayer1Id(player_1);
+      if (player_2)       setPlayer2Id(player_2);
       if (player1_ready !== undefined) setPlayer1Ready(player1_ready);
       if (player2_ready !== undefined) setPlayer2Ready(player2_ready);
 
+      // Fetch team names if they just appeared
       if (player_1) {
         const { data: t1 } = await supabase
           .from('teams')
@@ -63,7 +63,7 @@ export default function useFetchSelectedGame() {
       }
     };
 
-    // Subscribe to realtime session updates
+    // 2) Subscribe first
     const channel = supabase
       .channel(`session_${sessionId}`)
       .on(
@@ -72,21 +72,26 @@ export default function useFetchSelectedGame() {
           event: 'UPDATE',
           schema: 'public',
           table: 'sessions',
-          filter: `session_id=eq.${sessionId}`
+          filter: `session_id=eq.${sessionId}`,
         },
         handleUpdate
       )
       .subscribe();
 
-    // Initial fetch
+    // 3) Then do the initial fetch
     getSessionData(sessionId)
       .then(async session => {
+        // populate state from the existing row
         await handleUpdate({ new: session });
       })
-      .catch(err => setError(err.message || 'Fetch failed'))
-      .finally(() => setLoading(false));
+      .catch(err => {
+        setError(err.message || 'Fetch failed');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
-    // Cleanup
+    // Cleanup subscription on unmount / sessionId change
     return () => {
       supabase.removeChannel(channel);
     };
@@ -98,8 +103,8 @@ export default function useFetchSelectedGame() {
     setStartTime,
     setPlayer1Id,
     setPlayer2Id,
-    setPlayer1Ready,   // added
-    setPlayer2Ready,   // added
+    setPlayer1Ready,
+    setPlayer2Ready,
   ]);
 
   return { loading, error };

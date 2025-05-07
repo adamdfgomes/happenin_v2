@@ -23,7 +23,7 @@ const Wheel: React.FC<WheelProps> = ({ options, onSpinComplete }) => {
     const cycles      = 3
     const totalSteps  = cycles * options.length + targetIdx
 
-    const minInterval = 10   // super fast at the start
+    const minInterval = 5    // even faster at the start
     const maxInterval = 600  // slow crawl at the end
 
     let currentStep = 0

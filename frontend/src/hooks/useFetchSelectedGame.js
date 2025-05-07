@@ -1,5 +1,5 @@
 // src/hooks/useFetchSelectedGame.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getSessionData } from '../utils/api';
 import supabase from '../utils/supabasePublicClient';
 import { useGameSession } from '../context/GameSessionContext';
@@ -18,7 +18,8 @@ export default function useFetchSelectedGame() {
   } = useGameSession();
 
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
+  const debounceRef = useRef(null);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -26,8 +27,8 @@ export default function useFetchSelectedGame() {
     setLoading(true);
     setError(null);
 
-    // 1) Handler for any realtime UPDATEs
-    const handleUpdate = async ({ new: payload }) => {
+    // apply updates in batch
+    const applyUpdate = async (payload) => {
       const {
         selected_game,
         player_1,
@@ -38,13 +39,13 @@ export default function useFetchSelectedGame() {
       } = payload;
 
       if (selected_game) setSelectedGame(selected_game);
-      if (start_time)     setStartTime(start_time);
-      if (player_1)       setPlayer1Id(player_1);
-      if (player_2)       setPlayer2Id(player_2);
+      if (start_time) setStartTime(start_time);
+      if (player_1) setPlayer1Id(player_1);
+      if (player_2) setPlayer2Id(player_2);
       if (player1_ready !== undefined) setPlayer1Ready(player1_ready);
       if (player2_ready !== undefined) setPlayer2Ready(player2_ready);
 
-      // Fetch team names if they just appeared
+      // fetch team names
       if (player_1) {
         const { data: t1 } = await supabase
           .from('teams')
@@ -63,7 +64,15 @@ export default function useFetchSelectedGame() {
       }
     };
 
-    // 2) Subscribe first
+    // Debounced handler for real-time updates
+    const debouncedHandler = ({ new: payload }) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        applyUpdate(payload);
+      }, 50);
+    };
+
+    // 1) Subscribe to real-time session updates FIRST
     const channel = supabase
       .channel(`session_${sessionId}`)
       .on(
@@ -74,26 +83,20 @@ export default function useFetchSelectedGame() {
           table: 'sessions',
           filter: `session_id=eq.${sessionId}`,
         },
-        handleUpdate
+        debouncedHandler
       )
       .subscribe();
 
-    // 3) Then do the initial fetch
+    // 2) Then do the initial fetch
     getSessionData(sessionId)
-      .then(async session => {
-        // populate state from the existing row
-        await handleUpdate({ new: session });
-      })
-      .catch(err => {
-        setError(err.message || 'Fetch failed');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .then((session) => applyUpdate(session))
+      .catch((err) => setError(err.message || 'Fetch failed'))
+      .finally(() => setLoading(false));
 
-    // Cleanup subscription on unmount / sessionId change
+    // Cleanup
     return () => {
       supabase.removeChannel(channel);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [
     sessionId,

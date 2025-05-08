@@ -1,4 +1,6 @@
 // src/utils/api.ts
+import supabase from './supabasePublicClient'
+
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 /**
@@ -129,27 +131,38 @@ export async function updateTeamName(
 }
 
 /**
- * Fetch a session’s details via the single-object route.
+ * Fetch a session’s details by its UUID.
  */
 export async function getSessionData(
   sessionId: string
 ): Promise<{ 
   session_id: string
+  player_1: string
+  player_2: string
   selected_game?: string
   player1_ready?: boolean
   player2_ready?: boolean
   start_time?: string
 }> {
-  const res = await fetch(`/api/sessions/${sessionId}`, {
-    method: 'GET',
-    headers: JSON_HEADERS,
-  })
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Failed to fetch session: ${err}`)
+  // Use Supabase client to guarantee exactly one row
+  const { data, error } = await supabase
+    .from('sessions')
+    .select(
+      `session_id,
+       player_1,
+       player_2,
+       selected_game,
+       player1_ready,
+       player2_ready,
+       start_time`
+    )
+    .eq('session_id', sessionId)
+    .single()
+
+  if (error) {
+    throw new Error(`Failed to fetch session: ${error.message}`)
   }
-  // This endpoint returns a single JSON object
-  return res.json()
+  return data
 }
 
 /**

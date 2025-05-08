@@ -31,7 +31,7 @@ export async function processTeams() {
 
     // 3) Group by pub_name
     const byPub = unmatched.reduce((map, team) => {
-      if (!team.team_name) return map
+      if (!team.pub_name) return map
       map[team.pub_name] = map[team.pub_name] || []
       map[team.pub_name].push(team.team_id)
       return map

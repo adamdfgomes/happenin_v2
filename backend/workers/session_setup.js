@@ -1,7 +1,7 @@
 // backend/session_setup.js
 import { v4 as uuidv4 } from 'uuid'
 import { adminClient } from './supabaseClients.js'
-import { subscribeToTable } from '../supabaseListener.js'
+import { subscribeToTable } from './supabaseListener.js'
 
 export async function processTeams() {
   try {

@@ -5,7 +5,7 @@ import { subscribeToTable } from './supabaseListener.js'
 
 /**
  * 1) Try to acquire an advisory lock (non‐blocking).
- * 2) If successful, fetch unmatched teams, group by pub_name, and match them.
+ * 2) If successful, fetch unmatched teams **with a team_name**, group by pub_name, and match them.
  * 3) Update both teams and upsert a session record.
  * 4) Release the advisory lock.
  */
@@ -19,21 +19,26 @@ export async function processTeams() {
     return
   }
   if (!lockAcquired) {
-    // Someone else is matching right now
     console.log('🔒 Lock busy, skipping this pass')
     return
   }
 
   try {
-    // 2) Fetch all unmatched teams
-    const { data: unmatched, error: fetchErr } = await adminClient
+    // 2) Fetch all unmatched teams **including the team_name** field
+    const { data, error: fetchErr } = await adminClient
       .from('teams')
-      .select('team_id, pub_name, created_at')
+      .select('team_id, team_name, pub_name, created_at')
       .eq('matched', false)
       .order('created_at', { ascending: true })
 
     if (fetchErr) throw fetchErr
-    if (!unmatched || unmatched.length < 2) return
+
+    // 2a) filter out any teams that don't yet have a name
+    const unmatched = data.filter(team => team.team_name && team.team_name.trim() !== '')
+    if (unmatched.length < 2) {
+      // nothing to pair yet
+      return
+    }
 
     // 3) Group by pub_name
     const byPub = unmatched.reduce((map, team) => {
@@ -51,6 +56,7 @@ export async function processTeams() {
         const B = queue.shift()
         const session_id = uuidv4()
 
+        // update both teams and upsert session
         const updateA = adminClient
           .from('teams')
           .update({ matched: true, matched_id: B, session_id })
@@ -83,7 +89,7 @@ export async function processTeams() {
   } catch (err) {
     console.error('processTeams error:', err)
   } finally {
-    // 5) Release the lock
+    // 5) Release the lock if we held it
     const { error: unlockErr } = await adminClient.rpc('release_match_lock')
     if (unlockErr) {
       console.error('❌ Failed to release lock', unlockErr)

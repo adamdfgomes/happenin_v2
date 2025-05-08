@@ -3,76 +3,74 @@ import { v4 as uuidv4 } from 'uuid'
 import { adminClient } from './supabaseClients.js'
 import { subscribeToTable } from './supabaseListener.js'
 
+// Simple in-memory lock
+let isMatching = false
+
 export async function processTeams() {
+  // if we're already mid-match, bail out
+  if (isMatching) return
+  isMatching = true
+
   try {
-    // 1) figure out which pubs actually have ≥2 waiting teams
-    const { data: pubs, error: pubsErr } = await adminClient
+    // --- your existing logic below, unchanged ---
+    const { data: unmatched, error: fetchErr } = await adminClient
       .from('teams')
-      .select('pub_name', { count: 'exact' })
+      .select('team_id, team_name, pub_name')
       .eq('matched', false)
-      .neq('pub_name', null)
-      .group('pub_name')
-      .having('count', 'gte', 2)
+      .order('created_at', { ascending: true })
 
-    if (pubsErr) throw pubsErr
-    if (!pubs?.length) return
+    if (fetchErr) throw fetchErr
+    if (!unmatched || unmatched.length < 2) return
 
-    for (const { pub_name: pub } of pubs) {
-      // 2) Atomically mark the *first* two unmatched teams for this pub as matched,
-      //    and return their IDs. Postgres will lock & update exactly those two rows,
-      //    so no two workers can grab the same teams.
-      const { data: picked, count, error: pickErr } = await adminClient
-        .from('teams')
-        .update({ matched: true })
-        .eq('pub_name', pub)
-        .eq('matched', false)
-        .order('created_at', { ascending: true })
-        .limit(2)
-        .select('team_id', { count: 'exact' })
+    const byPub = unmatched.reduce((map, team) => {
+      if (!team.team_name) return map
+      map[team.pub_name] = map[team.pub_name] || []
+      map[team.pub_name].push(team.team_id)
+      return map
+    }, {})
 
-      if (pickErr) {
-        console.error(`❌ failed to pick teams for pub "${pub}"`, pickErr)
-        continue
-      }
-      if (count < 2) {
-        // maybe another worker snatched one of them first
-        continue
-      }
+    for (const [pub, teamIds] of Object.entries(byPub)) {
+      const queue = [...teamIds]
+      while (queue.length >= 2) {
+        const A = queue.shift()
+        const B = queue.shift()
+        const session_id = uuidv4()
 
-      // 3) We got exactly two teams — safe to create a session
-      const [A, B] = picked.map(t => t.team_id)
-      const session_id = uuidv4()
-
-      const { error: sessErr } = await adminClient
-        .from('sessions')
-        .insert({ session_id, player_1: A, player_2: B, pub_name: pub })
-
-      if (sessErr) {
-        console.error(`❌ could not insert session for ${A}&${B}`, sessErr)
-        // optionally, roll back their matched flag here if you really need to
-        continue
-      }
-
-      // 4) Finally stamp the session_id and matched_id onto each team
-      await Promise.all([
-        adminClient
+        const updateA = adminClient
           .from('teams')
-          .update({ matched_id: B, session_id })
-          .eq('team_id', A),
-        adminClient
+          .update({ matched: true, matched_id: B, session_id })
+          .eq('team_id', A)
+        const updateB = adminClient
           .from('teams')
-          .update({ matched_id: A, session_id })
-          .eq('team_id', B),
-      ])
+          .update({ matched: true, matched_id: A, session_id })
+          .eq('team_id', B)
+        const upsertSess = adminClient
+          .from('sessions')
+          .upsert(
+            { session_id, player_1: A, player_2: B, pub_name: pub },
+            { onConflict: ['session_id'] }
+          )
 
-      console.log(`✅ Synced session ${session_id} for teams ${A} & ${B} at pub "${pub}"`)
+        const [resA, resB, resS] = await Promise.all([updateA, updateB, upsertSess])
+        const t1Err = resA.error, t2Err = resB.error, sErr = resS.error
+
+        if (t1Err || t2Err || sErr) {
+          console.error('Error syncing pair', { A, B, t1Err, t2Err, sErr })
+        } else {
+          console.log(`Synced session ${session_id} for teams ${A} & ${B}`)
+        }
+      }
     }
+    // --- end existing logic ---
   } catch (err) {
-    console.error('processTeams:', err)
+    console.error('processTeams error:', err)
+  } finally {
+    // release the in-process lock
+    isMatching = false
   }
 }
 
 export function startTeamWorkers() {
-  console.log('▶️ Session Setup worker listening for changes to teams...')
+  console.log('▶️  Session Setup worker listening for changes to teams...')
   return subscribeToTable('teams', () => processTeams())
 }

@@ -2,6 +2,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import { adminClient } from './supabaseClients.js'
 import { subscribeToTable } from './supabaseListener.js'
+import throttle from 'lodash/throttle.js'
+import { acquireLock, releaseLock } from './lockHelpers.js'
 
 /**
  * 1) Match unmatched teams within the same pub_name and mark them matched.
@@ -40,10 +42,12 @@ export async function processTeams() {
           .from('teams')
           .update({ matched: true, matched_id: B, session_id })
           .eq('team_id', A)
+          .eq('matched', false)    // ensure still unmatched
         const updateB = adminClient
           .from('teams')
           .update({ matched: true, matched_id: A, session_id })
           .eq('team_id', B)
+          .eq('matched', false)
         const upsertSess = adminClient
           .from('sessions')
           .upsert({ session_id, player_1: A, player_2: B, pub_name: pub }, { onConflict: ['session_id'] })
@@ -63,14 +67,39 @@ export async function processTeams() {
   }
 }
 
+// --- Locking + Throttling to prevent races and hammering DB ---
+let isRunning = false
+
+async function safeProcess() {
+  // Try to acquire advisory lock and prevent re-entry
+  const gotLock = await acquireLock()
+  if (isRunning || !gotLock) return
+  isRunning = true
+
+  try {
+    await processTeams()
+  } finally {
+    isRunning = false
+    await releaseLock()
+  }
+}
+
+// Throttle invocations: at most once every 5s, with leading + trailing calls
+const throttledProcessTeams = throttle(safeProcess, 5000, {
+  leading: true,
+  trailing: true,
+})
+
 /**
  * Start realtime listeners on `teams` table events.
+ * Wrapped in throttle + lock to avoid race conditions and over-frequent runs.
  */
 export function startTeamWorkers() {
   console.log('▶️  Session Setup worker listening for changes to teams...')
+  throttledProcessTeams()
   const unsubscribe = subscribeToTable(
     'teams',
-    () => processTeams()
+    throttledProcessTeams
   )
   return unsubscribe
 }

@@ -1,94 +1,149 @@
 // src/hooks/useFetchSelectedGame.js
-import { useState, useEffect, useRef } from 'react';
-import { getSessionData } from '../utils/api';
-import supabase from '../utils/supabasePublicClient';
-import { useGameSession } from '../context/GameSessionContext';
+import { useState, useEffect, useRef } from 'react'
+import supabase from '../utils/supabasePublicClient'
+import { useGameSession } from '../context/GameSessionContext'
 
 /**
- * Fetch session details (game selection, start time, ready flags),
- * then lookup the two teams for this session and subscribe to realtime updates.
+ * Fetch session details and subscribe to realtime updates,
+ * then derive `me` vs `them` so Landing can just render those.
  */
 export default function useFetchSelectedGame() {
   const {
+    teamId,
     sessionId,
+    player1Id,
+    player2Id,
+    player1TeamName,
+    player2TeamName,
+    player1Ready,
+    player2Ready,
     setSelectedGame,
-    setPlayer1TeamName,
-    setPlayer2TeamName,
-    setStartTime,
     setPlayer1Id,
     setPlayer2Id,
+    setPlayer1TeamName,
+    setPlayer2TeamName,
     setPlayer1Ready,
     setPlayer2Ready,
-  } = useGameSession();
+  } = useGameSession()
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const debounceRef = useRef(null);
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const debounceRef = useRef(null)
 
   useEffect(() => {
-    // If there's no session yet, clear loading and bail
     if (!sessionId) {
-      setLoading(false);
-      return;
+      setLoading(false)
+      return
     }
 
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
 
-    // Apply updates: session fields + lookup teams by session_id
-    const applyUpdate = async (payload) => {
-      const { selected_game, start_time, player1_ready, player2_ready } = payload;
+    const applyUpdate = async (sessionRecord) => {
+      const {
+        selected_game,
+        player1_ready,
+        player2_ready,
+        player_1,
+        player_2,
+      } = sessionRecord
 
-      if (selected_game) setSelectedGame(selected_game);
-      if (start_time) setStartTime(start_time);
-      if (player1_ready !== undefined) setPlayer1Ready(player1_ready);
-      if (player2_ready !== undefined) setPlayer2Ready(player2_ready);
+      // 1) Update session fields
+      if (selected_game !== undefined) setSelectedGame(selected_game)
+      if (player1_ready  !== undefined) setPlayer1Ready(player1_ready)
+      if (player2_ready  !== undefined) setPlayer2Ready(player2_ready)
 
-      // Fetch the two teams for this session
+      // 2) Fetch both team names in one go
       const { data: teams, error: teamsError } = await supabase
         .from('teams')
         .select('team_id, team_name')
-        .eq('session_id', sessionId);
-      if (teamsError) throw teamsError;
+        .in('team_id', [player_1, player_2])
 
-      // Assuming exactly two teams per session
-      if (teams?.length >= 2) {
-        const [t1, t2] = teams;
-        setPlayer1Id(t1.team_id);
-        setPlayer1TeamName(t1.team_name);
-        setPlayer2Id(t2.team_id);
-        setPlayer2TeamName(t2.team_name);
+      if (teamsError) {
+        console.error('Error fetching team names:', teamsError)
+        return
       }
-    };
+
+      // 3) Map to slots
+      const p1 = teams.find((t) => t.team_id === player_1)
+      const p2 = teams.find((t) => t.team_id === player_2)
+
+      if (p1) {
+        setPlayer1Id(p1.team_id)
+        setPlayer1TeamName(p1.team_name)
+      }
+      if (p2) {
+        setPlayer2Id(p2.team_id)
+        setPlayer2TeamName(p2.team_name)
+      }
+    }
 
     // Debounced handler for realtime updates
     const debouncedHandler = ({ new: payload }) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => applyUpdate(payload), 50);
-    };
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => applyUpdate(payload), 50)
+    }
 
-    // 1) Subscribe to realtime session updates
+    // Subscribe to session updates
     const channel = supabase
       .channel(`session_${sessionId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${sessionId}` },
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `session_id=eq.${sessionId}`,
+        },
         debouncedHandler
       )
-      .subscribe();
+      .subscribe()
 
-    // 2) Initial fetch
-    getSessionData(sessionId)
-      .then((session) => applyUpdate(session))
-      .catch((err) => setError(err.message || 'Fetch failed'))
-      .finally(() => setLoading(false));
+    // Initial fetch
+    supabase
+      .from('sessions')
+      .select(
+        `session_id, selected_game, player1_ready, player2_ready, player_1, player_2`
+      )
+      .eq('session_id', sessionId)
+      .single()
+      .then(({ data, error: initialError }) => {
+        if (initialError) {
+          setError(initialError.message)
+        } else if (data) {
+          applyUpdate(data)
+        }
+      })
+      .finally(() => setLoading(false))
 
-    // Cleanup on unmount or session change
     return () => {
-      supabase.removeChannel(channel);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [sessionId, setSelectedGame, setPlayer1TeamName, setPlayer2TeamName, setStartTime, setPlayer1Id, setPlayer2Id, setPlayer1Ready, setPlayer2Ready]);
+      supabase.removeChannel(channel)
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [
+    teamId,
+    sessionId,
+    setSelectedGame,
+    setPlayer1Id,
+    setPlayer2Id,
+    setPlayer1TeamName,
+    setPlayer2TeamName,
+    setPlayer1Ready,
+    setPlayer2Ready,
+  ])
 
-  return { loading, error };
+  // Derive “me” vs “them”
+  const amIPlayer1 = teamId === player1Id
+  const me = {
+    id:    amIPlayer1 ? player1Id     : player2Id,
+    name:  amIPlayer1 ? player1TeamName : player2TeamName,
+    ready: amIPlayer1 ? player1Ready   : player2Ready,
+  }
+  const them = {
+    id:    amIPlayer1 ? player2Id     : player1Id,
+    name:  amIPlayer1 ? player2TeamName : player1TeamName,
+    ready: amIPlayer1 ? player2Ready   : player1Ready,
+  }
+
+  return { loading, error, me, them }
 }

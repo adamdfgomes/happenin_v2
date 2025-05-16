@@ -1,5 +1,5 @@
 // src/pages/Landing.tsx
-import React, { FC, useEffect, useState } from 'react'
+import React, { FC, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameSession } from '../context/GameSessionContext'
 import useFetchSelectedGame from '../hooks/useFetchSelectedGame'
@@ -8,83 +8,76 @@ import { updateSessionReady } from '../utils/api'
 
 const Landing: FC = () => {
   const {
-    teamId,
-    player1Id,
-    player2Id,
-    player1TeamName,
-    player2TeamName,
     sessionId,
-    player1Ready,
-    player2Ready,
+    player1Id,
+    setPlayer1Ready,
+    setPlayer2Ready,
   } = useGameSession()
-
-  const { loading, error } = useFetchSelectedGame()
+  const { loading, error, me, them } = useFetchSelectedGame()
   const navigate = useNavigate()
 
-  const [minimumElapsed, setMinimumElapsed] = useState(false)
+  // NAVIGATE as soon as both are ready
   useEffect(() => {
-    const timer = window.setTimeout(() => setMinimumElapsed(true), 2000)
-    return () => clearTimeout(timer)
-  }, [])
-
-  const [ready, setReady] = useState(false)
-  const isReadyUpSectionVisible =
-    !loading &&
-    Boolean(player1TeamName) &&
-    Boolean(player2TeamName) &&
-    minimumElapsed
-
-  const amIPlayer1 = teamId === player1Id
-  const playerSlot = amIPlayer1 ? 1 : 2
+    if (me.ready && them.ready && sessionId) {
+      navigate(`/Wheel/${sessionId}`)
+    }
+  }, [me.ready, them.ready, sessionId, navigate])
 
   const handleReady = async () => {
     if (!sessionId) return
+    const slot = me.id === player1Id ? 1 : 2
     try {
-      await updateSessionReady(sessionId, playerSlot, true)
-      setReady(true)
-    } catch (e) {
-      console.error(e)
+      await updateSessionReady(sessionId, slot, true)
+      // optimistic UI update
+      if (slot === 1) setPlayer1Ready(true)
+      else           setPlayer2Ready(true)
+    } catch (err) {
+      console.error(err)
     }
   }
 
-  // NAVIGATE as soon as both players are ready
-  useEffect(() => {
-    if (player1Ready && player2Ready && sessionId) {
-      navigate(`/Wheel/${sessionId}`)
-    }
-  }, [player1Ready, player2Ready, sessionId, navigate])
+  // 1) Loading state → spinner  
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">
+          We've matched you up!
+        </h1>
+        <div
+          className="w-12 h-12 border-4 border-gray-200 border-l-gray-600 rounded-full animate-spin"
+          aria-label="Loading spinner"
+        />
+      </main>
+    )
+  }
 
+  // 2) Error state  
+  if (error) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <p className="text-red-600">Error loading match details: {error}</p>
+      </main>
+    )
+  }
+
+  // 3) Ready-up state
   return (
     <main className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-      <h1 className="text-3xl font-bold text-gray-800 mb-4">
-        {isReadyUpSectionVisible ? 'Game on!' : "We've matched you up!"}
-      </h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-4">Game on!</h1>
 
-      {error && (
-        <p className="text-red-600 mt-2">Error loading match details: {error}</p>
-      )}
+      <p className="text-2xl text-gray-900 mb-4">
+        {me.name} vs. {them.name}
+      </p>
 
-      {!isReadyUpSectionVisible && !error && (
-        <p className="text-xl text-gray-700 mb-4">Loading match details…</p>
-      )}
+      <p className="text-sm text-gray-500 mb-2">Ready up to get going!</p>
 
-      {isReadyUpSectionVisible && (
-        <>
-          <p className="text-2xl text-gray-900 mb-4">
-            {player1TeamName} vs. {player2TeamName}
-          </p>
-
-          <p className="text-sm text-gray-500 mb-2">Ready up to get going!</p>
-
-          <Button
-            onClick={handleReady}
-            disabled={ready}
-            className={ready ? 'bg-green-500 hover:bg-green-600' : ''}
-          >
-            {ready ? 'Ready!' : 'Ready Up'}
-          </Button>
-        </>
-      )}
+      <Button
+        onClick={handleReady}
+        disabled={me.ready}
+        className={me.ready ? 'bg-green-500 hover:bg-green-600' : ''}
+      >
+        {me.ready ? 'Ready!' : 'Ready Up'}
+      </Button>
     </main>
   )
 }

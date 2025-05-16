@@ -6,39 +6,30 @@ interface WheelProps {
   onSpinComplete?: () => void
 }
 
-function easeOutQuad(t: number) {
-  return 1 - (1 - t) * (1 - t)
-}
-
 const Wheel: React.FC<WheelProps> = ({ options, onSpinComplete }) => {
   const { selectedGame } = useGameSession()
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null)
-  const [spinComplete, setSpinComplete]     = useState(false)
+  const [spinComplete, setSpinComplete] = useState(false)
 
   useEffect(() => {
     if (!selectedGame) return
 
     setSpinComplete(false)
-    const targetIdx   = options.indexOf(selectedGame)
-    const cycles      = 3
-    const totalSteps  = cycles * options.length + targetIdx
-
-    const minInterval = 5    // even faster at the start
-    const maxInterval = 600  // slow crawl at the end
-
+    const targetIdx = options.indexOf(selectedGame)
+    const cycles = 3
+    const totalSteps = cycles * options.length + targetIdx
     let currentStep = 0
+    let interval = 100
     const timeouts: ReturnType<typeof setTimeout>[] = []
 
     const scheduleStep = () => {
-      setHighlightIndex(currentStep % options.length)
+      const idx = currentStep % options.length
+      setHighlightIndex(idx)
       currentStep++
 
       if (currentStep <= totalSteps) {
-        const t     = currentStep / totalSteps
-        const eased = easeOutQuad(t)
-        const delay = minInterval + (maxInterval - minInterval) * eased
-
-        timeouts.push(setTimeout(scheduleStep, delay))
+        interval += 20
+        timeouts.push(setTimeout(scheduleStep, interval))
       } else {
         setSpinComplete(true)
         onSpinComplete?.()
@@ -46,7 +37,10 @@ const Wheel: React.FC<WheelProps> = ({ options, onSpinComplete }) => {
     }
 
     scheduleStep()
-    return () => timeouts.forEach(clearTimeout)
+
+    return () => {
+      timeouts.forEach(clearTimeout)
+    }
   }, [selectedGame, options, onSpinComplete])
 
   return (
@@ -54,20 +48,14 @@ const Wheel: React.FC<WheelProps> = ({ options, onSpinComplete }) => {
       <div className="flex space-x-4">
         {options.map((opt, i) => {
           const isHighlighted = i === highlightIndex
-          const isSelected    = opt === selectedGame && spinComplete
+          const isSelected = opt === selectedGame && spinComplete
           return (
             <div
               key={opt}
               className={
                 `px-4 py-2 rounded-lg border transition-all` +
-                (isHighlighted
-                  ? ' bg-blue-200 scale-110'
-                  : ''
-                ) +
-                (isSelected
-                  ? ' animate-pulse bg-green-200 text-green-800 font-bold'
-                  : ''
-                )
+                (isHighlighted ? ' bg-blue-200 scale-110' : '') +
+                (isSelected ? ' animate-pulse bg-green-200 text-green-800 font-bold' : '')
               }
             >
               {opt}

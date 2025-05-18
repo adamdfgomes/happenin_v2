@@ -8,6 +8,9 @@ import { acquireLock, releaseLock } from './lockHelpers.js'
 // List of available games (must match front-end options)
 const GAMES = ['trivia', 'two-truths-one-lie', 'drawing']
 
+// pick a unique lock ID for cleanup (make sure your locks table allows it)
+const GAME_LOCK_KEY = 44
+
 /**
  * 1. Find all sessions with two players and no selected_game yet.
  * 2. Randomly pick a game for each.
@@ -50,14 +53,14 @@ export async function processSessions() {
 let isRunning = false
 
 async function safeProcess() {
-  const gotLock = await acquireLock()
+  const gotLock = await acquireLock(GAME_LOCK_KEY)
   if (isRunning || !gotLock) return
   isRunning = true
   try {
     await processSessions()
   } finally {
     isRunning = false
-    await releaseLock()
+    await releaseLock(GAME_LOCK_KEY)
   }
 }
 

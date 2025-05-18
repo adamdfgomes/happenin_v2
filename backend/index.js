@@ -100,12 +100,15 @@ app.get('/api/teams/:teamId', async (req, res) => {
 // PATCH /api/teams/:teamId
 app.patch('/api/teams/:teamId', async (req, res) => {
   const { teamId } = req.params;
-  const { team_name, group_type } = req.body;
+  // now also accept `matched` (and session_id if needed)
+  const { team_name, group_type, matched, session_id } = req.body;
 
   // Build a dynamic update object
   const updateData = {};
-  if (team_name !== undefined) updateData.team_name = team_name;
-  if (group_type !== undefined) updateData.group_type = group_type;
+  if (team_name     !== undefined) updateData.team_name    = team_name;
+  if (group_type    !== undefined) updateData.group_type   = group_type;
+  if (matched       !== undefined) updateData.matched      = matched;
+  if (session_id    !== undefined) updateData.session_id   = session_id;
 
   if (Object.keys(updateData).length === 0) {
     return res.status(400).json({ error: 'No valid fields provided to update' });
@@ -138,7 +141,7 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
   try {
     const { data, error, status } = await supabase
       .from('sessions')
-      .select('session_id, selected_game, player1_ready, player2_ready')
+      .select('session_id, selected_game, player1_ready, player2_ready, start_time')
       .eq('session_id', sessionId)
       .single();
 
@@ -158,9 +161,8 @@ app.patch('/api/sessions/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const { selected_game, player1_ready, player2_ready } = req.body;
 
-  // Build a dynamic update object
   const updateData = {};
-  if (selected_game !== undefined) updateData.selected_game = selected_game;
+  if (selected_game  !== undefined) updateData.selected_game  = selected_game;
   if (player1_ready !== undefined) updateData.player1_ready = player1_ready;
   if (player2_ready !== undefined) updateData.player2_ready = player2_ready;
 
@@ -188,20 +190,11 @@ app.patch('/api/sessions/:sessionId', async (req, res) => {
   }
 });
 
-// Serve static files from the React app
+// Serve static files and fallback...
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use('/api/*', (_req, res) => res.status(404).json({ error: 'API endpoint not found' }));
+app.get('*', (_req, res) => res.sendFile(path.join(__dirname, '../frontend/dist/index.html')));
 
-// Handle API 404s
-app.use('/api/*', (_req, res) => {
-  res.status(404).json({ error: 'API endpoint not found' });
-});
-
-// Fallback: serve index.html for any other route (client-side routing)
-app.get('*', (_req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-});
-
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

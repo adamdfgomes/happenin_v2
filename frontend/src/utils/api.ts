@@ -60,7 +60,9 @@ export async function getTeamByPubAndTable(
 
   const data = await res.json()
   if (!Array.isArray(data) || data.length === 0) {
-    throw new Error(`No team found for pub ${pubName} at table ${tableNumber}`)
+    throw new Error(
+      `No team found for pub ${pubName} at table ${tableNumber}`
+    )
   }
   return data[0]
 }
@@ -129,11 +131,27 @@ export async function updateTeamName(
 }
 
 /**
+ * Flip a team's `matched` flag back to false so
+ * it re-enters the matchmaking queue.
+ */
+export async function rematchTeam(teamId: string): Promise<void> {
+  const res = await fetch(`/api/teams/${teamId}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ matched: false }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Failed to rematch team: ${err}`)
+  }
+}
+
+/**
  * Fetch a session’s details via the single-object route.
  */
 export async function getSessionData(
   sessionId: string
-): Promise<{ 
+): Promise<{
   session_id: string
   selected_game?: string
   player1_ready?: boolean

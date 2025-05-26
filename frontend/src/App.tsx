@@ -10,10 +10,12 @@ import GroupTypeSelection  from './pages/GroupType'
 import WaitingRoom         from './pages/WaitingRoom'
 import Landing             from './pages/Landing'
 import GameWheel           from './pages/GameWheel'
+import InterGameMessage    from './pages/InterGameMessage'
 
 import TwoTruthsOneLie     from './pages/TwoTruthsOneLie/TwoTruthsOneLie'
 import TTOLwaitingroom     from './pages/TwoTruthsOneLie/TTOLwaitingroom'
 import TTOLanswers         from './pages/TwoTruthsOneLie/TTOLanswers'
+import TTOLresults         from './pages/TwoTruthsOneLie/TTOLresults'
 
 const App: React.FC = () => (
   <BrowserRouter>
@@ -26,10 +28,12 @@ const App: React.FC = () => (
         <Route path="/waiting"                                element={<WaitingRoom />} />
         <Route path="/landing/:sessionId"                     element={<Landing />} />
         <Route path="/wheel/:sessionId"                       element={<GameWheel />} />
+        <Route path="/message/:sessionId"                     element={<InterGameMessage />} />
 
         <Route path="/two-truths-one-lie/:sessionId"          element={<TwoTruthsOneLie />} />
         <Route path="/two-truths-one-lie/:sessionId/waiting"  element={<TTOLwaitingroom />} />
         <Route path="/two-truths-one-lie/:sessionId/answers"  element={<TTOLanswers />} />
+        <Route path="/two-truths-one-lie/:sessionId/results"  element={<TTOLresults />} />
 
       </Routes>
     </GameSessionProvider>

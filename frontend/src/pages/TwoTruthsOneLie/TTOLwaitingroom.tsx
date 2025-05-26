@@ -24,13 +24,13 @@ const TTOLwaitingroom: React.FC = () => {
       r.p2_truth2 != null &&
       r.p2_lie    != null
 
-    // Start a 2s timer exactly when we first detect "complete"
+    // Start a 3s timer exactly when we first detect "complete"
     const scheduleNav = () => {
       if (scheduledRef.current) return
       scheduledRef.current = true
       timeoutId = window.setTimeout(() => {
         navigate(`/two-truths-one-lie/${sessionId}/answers`)
-      }, 2000)
+      }, 3000)
     }
 
     // 1) Check right away (for player 2 or race‐ahead cases)

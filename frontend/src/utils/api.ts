@@ -1,4 +1,3 @@
-// src/utils/api.ts
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 /**
@@ -29,6 +28,7 @@ export async function getTeamData(
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error(`Team ${teamId} not found`)
   }
+
   return data[0]
 }
 
@@ -64,6 +64,7 @@ export async function getTeamByPubAndTable(
       `No team found for pub ${pubName} at table ${tableNumber}`
     )
   }
+
   return data[0]
 }
 
@@ -106,6 +107,7 @@ export async function updateTeamGroupType(
     headers: JSON_HEADERS,
     body: JSON.stringify({ group_type: groupType }),
   })
+
   if (!res.ok) {
     const err = await res.text()
     throw new Error(`Failed to update group type: ${err}`)
@@ -124,6 +126,7 @@ export async function updateTeamName(
     headers: JSON_HEADERS,
     body: JSON.stringify({ team_name: teamName }),
   })
+
   if (!res.ok) {
     const err = await res.text()
     throw new Error(`Failed to update team name: ${err}`)
@@ -131,15 +134,18 @@ export async function updateTeamName(
 }
 
 /**
- * Flip a team's `matched` flag back to false so
+ * Flip a team's matched flag back to false so
  * it re-enters the matchmaking queue.
  */
-export async function rematchTeam(teamId: string): Promise<void> {
+export async function rematchTeam(
+  teamId: string
+): Promise<void> {
   const res = await fetch(`/api/teams/${teamId}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
     body: JSON.stringify({ matched: false }),
   })
+
   if (!res.ok) {
     const err = await res.text()
     throw new Error(`Failed to rematch team: ${err}`)
@@ -162,10 +168,12 @@ export async function getSessionData(
     method: 'GET',
     headers: JSON_HEADERS,
   })
+
   if (!res.ok) {
     const err = await res.text()
     throw new Error(`Failed to fetch session: ${err}`)
   }
+
   // This endpoint returns a single JSON object
   return res.json()
 }
@@ -182,6 +190,7 @@ export async function updateSessionGame(
     headers: JSON_HEADERS,
     body: JSON.stringify({ selected_game }),
   })
+
   if (!res.ok) {
     const err = await res.text()
     throw new Error(`Failed to update session game: ${err}`)
@@ -202,6 +211,7 @@ export async function updateSessionReady(
     headers: JSON_HEADERS,
     body: JSON.stringify({ [field]: ready }),
   })
+
   if (!res.ok) {
     const err = await res.text()
     throw new Error(`Failed to update ready status: ${err}`)

@@ -1,13 +1,6 @@
-// index.js (backend)
 import dotenv from 'dotenv';
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { supabase } from './utils/supabaseClient.js';
-
-// Polyfill for __dirname in ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -18,66 +11,12 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 // Health check endpoint
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'OK' });
+app.get('/api/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
-// --- Team endpoints ---
-
-// GET /api/teams?pub_name=…&table_number=…
-app.get('/api/teams', async (req, res) => {
-  const { pub_name, table_number } = req.query;
-  if (!pub_name || !table_number) {
-    return res
-      .status(400)
-      .json({ error: 'Missing query params: pub_name and table_number are required' });
-  }
-  try {
-    const { data, error, status } = await supabase
-      .from('teams')
-      .select()
-      .eq('pub_name', pub_name)
-      .eq('table_number', table_number);
-
-    if (error) {
-      console.error('[GET /api/teams] Supabase error:', { status, error });
-      return res.status(status || 500).json({ error: error.message });
-    }
-    return res.json(data);
-  } catch (err) {
-    console.error('[GET /api/teams] unexpected error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Create a new team record
-app.post('/api/teams', async (req, res) => {
-  const { table_number, pub_name } = req.body;
-  if (!table_number || !pub_name) {
-    return res
-      .status(400)
-      .json({ error: 'Missing required fields: table_number, pub_name' });
-  }
-
-  try {
-    const { data, error, status } = await supabase
-      .from('teams')
-      .insert([{ table_number, pub_name }]);
-
-    console.log('Supabase response:', { status, error, data });
-    if (error) {
-      console.error('Supabase insert error:', { status, error });
-      return res.status(status || 500).json({ error: error.message });
-    }
-
-    res.status(201).json(data);
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// GET /api/teams/:teamId
+// --- Teams Endpoints ---
+// GET a single team by ID
 app.get('/api/teams/:teamId', async (req, res) => {
   const { teamId } = req.params;
   try {
@@ -86,115 +25,161 @@ app.get('/api/teams/:teamId', async (req, res) => {
       .select()
       .eq('team_id', teamId);
 
-    if (error) {
-      console.error('[GET /api/teams/:teamId] Supabase error:', { status, error });
-      return res.status(status || 500).json({ error: error.message });
-    }
+    if (error) return res.status(status || 500).json({ error: error.message });
     return res.json(data);
   } catch (err) {
-    console.error('[GET /api/teams/:teamId] unexpected error:', err);
+    console.error(err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// PATCH /api/teams/:teamId
-app.patch('/api/teams/:teamId', async (req, res) => {
-  const { teamId } = req.params;
-  // now also accept `matched` (and session_id if needed)
-  const { team_name, group_type, matched, session_id } = req.body;
+// GET teams by query (e.g. pub_name & table_number)
+app.get('/api/teams', async (req, res) => {
+  const { pub_name, table_number } = req.query;
+  try {
+    let query = supabase.from('teams').select();
+    if (pub_name) query = query.eq('pub_name', pub_name);
+    if (table_number) query = query.eq('table_number', Number(table_number));
 
-  // Build a dynamic update object
-  const updateData = {};
-  if (team_name     !== undefined) updateData.team_name    = team_name;
-  if (group_type    !== undefined) updateData.group_type   = group_type;
-  if (matched       !== undefined) updateData.matched      = matched;
-  if (session_id    !== undefined) updateData.session_id   = session_id;
+    const { data, error, status } = await query;
+    if (error) return res.status(status || 500).json({ error: error.message });
+    return res.json(data);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
-  if (Object.keys(updateData).length === 0) {
-    return res.status(400).json({ error: 'No valid fields provided to update' });
+// POST: create a new team (whitelist pub_name, table_number)
+app.post('/api/teams', async (req, res) => {
+  const { pub_name, table_number } = req.body;
+  if (typeof pub_name !== 'string')
+    return res.status(400).json({ error: 'pub_name is required as a string' });
+
+  let tableNum;
+  if (typeof table_number === 'number') {
+    tableNum = table_number;
+  } else if (typeof table_number === 'string') {
+    tableNum = Number(table_number);
+    if (Number.isNaN(tableNum)) {
+      return res.status(400).json({ error: 'table_number must be a number or numeric string' });
+    }
+  } else {
+    return res.status(400).json({ error: 'table_number is required as a number' });
   }
 
   try {
     const { data, error, status } = await supabase
       .from('teams')
-      .update(updateData)
-      .eq('team_id', teamId)
+      .insert([{ pub_name, table_number: tableNum }])
       .select();
 
-    if (error) {
-      console.error('[PATCH /api/teams] Supabase error:', { status, error });
-      return res.status(status || 500).json({ error: error.message });
-    }
-
-    res.json(data);
+    if (error) return res.status(status || 500).json({ error: error.message });
+    return res.status(201).json(data);
   } catch (err) {
-    console.error('[PATCH /api/teams] unexpected error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// --- Session endpoints ---
+// PATCH: whitelist only team_name, group_type, matched
+app.patch('/api/teams/:teamId', async (req, res) => {
+  const { teamId } = req.params;
+  const payload = req.body || {};
+  const updateData = {};
 
-// GET /api/sessions/:sessionId
+  if (payload.hasOwnProperty('team_name')) {
+    if (typeof payload.team_name !== 'string')
+      return res.status(400).json({ error: 'team_name must be a string' });
+    updateData.team_name = payload.team_name;
+  }
+  if (payload.hasOwnProperty('group_type')) {
+    if (typeof payload.group_type !== 'string')
+      return res.status(400).json({ error: 'group_type must be a string' });
+    updateData.group_type = payload.group_type;
+  }
+  if (payload.hasOwnProperty('matched')) {
+    if (typeof payload.matched !== 'boolean')
+      return res.status(400).json({ error: 'matched must be a boolean' });
+    updateData.matched = payload.matched;
+  }
+
+  if (Object.keys(updateData).length === 0)
+    return res.status(400).json({ error: 'No valid fields provided to update' });
+
+  try {
+    const { data, error, status } = await supabase
+      .from('teams')
+      .update(updateData)
+      .eq('team_id', teamId);
+
+    if (error) return res.status(status || 500).json({ error: error.message });
+    return res.json({ team: data[0] });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// --- Sessions Endpoints ---
+// GET a single session by ID
 app.get('/api/sessions/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   try {
     const { data, error, status } = await supabase
       .from('sessions')
-      .select('session_id, selected_game, player1_ready, player2_ready, start_time')
-      .eq('session_id', sessionId)
-      .single();
+      .select()
+      .eq('session_id', sessionId);
 
-    if (error) {
-      console.error('[GET /api/sessions/:sessionId] Supabase error:', { status, error });
-      return res.status(status || 500).json({ error: error.message });
-    }
-    return res.json(data);
+    if (error) return res.status(status || 500).json({ error: error.message });
+    if (!data || data.length === 0)
+      return res.status(404).json({ error: 'Session not found' });
+    return res.json(data[0]);
   } catch (err) {
-    console.error('[GET /api/sessions/:sessionId] unexpected error:', err);
+    console.error(err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// PATCH /api/sessions/:sessionId
+// PATCH: whitelist only session fields (selected_game, player1_ready, player2_ready)
 app.patch('/api/sessions/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
-  const { selected_game, player1_ready, player2_ready } = req.body;
-
+  const payload = req.body || {};
   const updateData = {};
-  if (selected_game  !== undefined) updateData.selected_game  = selected_game;
-  if (player1_ready !== undefined) updateData.player1_ready = player1_ready;
-  if (player2_ready !== undefined) updateData.player2_ready = player2_ready;
 
-  if (Object.keys(updateData).length === 0) {
-    return res.status(400).json({ error: 'No valid fields provided to update' });
+  if (payload.hasOwnProperty('selected_game')) {
+    if (typeof payload.selected_game !== 'string')
+      return res.status(400).json({ error: 'selected_game must be a string' });
+    updateData.selected_game = payload.selected_game;
   }
+  if (payload.hasOwnProperty('player1_ready')) {
+    if (typeof payload.player1_ready !== 'boolean')
+      return res.status(400).json({ error: 'player1_ready must be a boolean' });
+    updateData.player1_ready = payload.player1_ready;
+  }
+  if (payload.hasOwnProperty('player2_ready')) {
+    if (typeof payload.player2_ready !== 'boolean')
+      return res.status(400).json({ error: 'player2_ready must be a boolean' });
+    updateData.player2_ready = payload.player2_ready;
+  }
+
+  if (Object.keys(updateData).length === 0)
+    return res.status(400).json({ error: 'No valid fields provided to update' });
 
   try {
     const { data, error, status } = await supabase
       .from('sessions')
       .update(updateData)
-      .eq('session_id', sessionId)
-      .select()
-      .single();
+      .eq('session_id', sessionId);
 
-    if (error) {
-      console.error('[PATCH /api/sessions/:sessionId] Supabase error:', { status, error });
-      return res.status(status || 500).json({ error: error.message });
-    }
-
-    res.json(data);
+    if (error) return res.status(status || 500).json({ error: error.message });
+    return res.json({ session: data[0] });
   } catch (err) {
-    console.error('[PATCH /api/sessions/:sessionId] unexpected error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Serve static files and fallback...
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-app.use('/api/*', (_req, res) => res.status(404).json({ error: 'API endpoint not found' }));
-app.get('*', (_req, res) => res.sendFile(path.join(__dirname, '../frontend/dist/index.html')));
-
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });

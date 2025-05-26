@@ -1,12 +1,12 @@
 // backend/supabaseListener.js
-import { anonClient } from './supabaseClients.js'
+import { adminClient } from './supabaseClients.js'
 
 /**
  * Call callback on every INSERT, UPDATE, or DELETE on `table`.
  * Returns an unsubscribe function.
  */
 export function subscribeToTable(table, callback) {
-  const subscription = anonClient
+  const subscription = adminClient
     .from(table)
     .on('INSERT', payload => callback(payload))
     .on('UPDATE', payload => callback(payload))
@@ -14,6 +14,6 @@ export function subscribeToTable(table, callback) {
     .subscribe()
 
   return () => {
-    anonClient.removeSubscription(subscription)
+    adminClient.removeSubscription(subscription)
   }
 }

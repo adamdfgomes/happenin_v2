@@ -1,4 +1,3 @@
-// src/pages/WaitingRoom.tsx
 import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
@@ -28,6 +27,7 @@ const WaitingRoom: React.FC = () => {
   // Hook that watches supabase for new session_id on this team
   useEffect(() => {
     if (!teamId) return
+
     const channel = supabase
       .channel(`team_session_${teamId}`)
       .on(
@@ -53,7 +53,7 @@ const WaitingRoom: React.FC = () => {
     }
   }, [teamId, setSessionId])
 
-  // Now use your existing hook to expose `sessionId`
+  // Now use your existing hook to expose sessionId
   const {
     loading: sessionLoading,
     error: sessionError,
@@ -67,21 +67,24 @@ const WaitingRoom: React.FC = () => {
   // Countdown till pub’s start time…
   useEffect(() => {
     if (!startTime) return
+
     const startDate = new Date(startTime)
     if (isNaN(startDate.getTime())) {
       setInvalidStartTime(true)
       return
     }
+
     const tick = () => {
       const diff = startDate.getTime() - Date.now()
       if (diff <= 0) {
         setTimeLeft(0)
-        clearInterval(intervalRef.current!)
+        clearInterval(intervalRef.current!) // eslint-disable-line @typescript-eslint/no-non-null-assertion
         intervalRef.current = null
       } else {
         setTimeLeft(diff)
       }
     }
+
     tick()
     intervalRef.current = window.setInterval(tick, 1000)
     return () => clearInterval(intervalRef.current!)
@@ -117,12 +120,12 @@ const WaitingRoom: React.FC = () => {
   }
 
   const formatTime = (ms: number) => {
-    const hrs  = Math.floor(ms / 3_600_000)
+    const hrs = Math.floor(ms / 3_600_000)
     const mins = Math.floor((ms % 3_600_000) / 60_000)
-    const secs = Math.floor((ms %   60_000) / 1000)
-    return `${hrs.toString().padStart(2,'0')}:` +
-           `${mins.toString().padStart(2,'0')}:` +
-           `${secs.toString().padStart(2,'0')}`
+    const secs = Math.floor((ms % 60_000) / 1000)
+    return `${hrs.toString().padStart(2, '0')}:` +
+           `${mins.toString().padStart(2, '0')}:` +
+           `${secs.toString().padStart(2, '0')}`
   }
 
   return (

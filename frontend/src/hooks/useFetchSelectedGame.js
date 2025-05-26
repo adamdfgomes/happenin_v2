@@ -54,6 +54,8 @@ export default function useFetchSelectedGame() {
       if (player2_ready  !== undefined) setPlayer2Ready(player2_ready)
 
       // 2) Fetch both team names in one go
+      //    you can keep using supabase here if you like,
+      //    or swap to your API /api/teams/:teamId if you prefer
       const { data: teams, error: teamsError } = await supabase
         .from('teams')
         .select('team_id, team_name')
@@ -99,22 +101,26 @@ export default function useFetchSelectedGame() {
       )
       .subscribe()
 
-    // Initial fetch
-    supabase
-      .from('sessions')
-      .select(
-        `session_id, selected_game, player1_ready, player2_ready, player_1, player_2`
-      )
-      .eq('session_id', sessionId)
-      .single()
-      .then(({ data, error: initialError }) => {
-        if (initialError) {
-          setError(initialError.message)
-        } else if (data) {
-          applyUpdate(data)
+    // **Initial fetch via your Express API instead of REST**  
+    const loadInitial = async () => {
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        })
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(text)
         }
-      })
-      .finally(() => setLoading(false))
+        const session = await res.json()
+        applyUpdate(session)
+      } catch (e) {
+        setError(e.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadInitial()
 
     return () => {
       supabase.removeChannel(channel)

@@ -45,38 +45,39 @@ const TwoTruthsOneLie: React.FC = () => {
 
     try {
       await postTTOLAnswers(sessionId, answers)
-      navigate(`/two-truths-one-lie/${sessionId}/waiting`)
+      navigate(
+       `/two-truths-one-lie/${sessionId}/waiting`,
+       { state: { justSubmitted: true } }
+      )
     } catch (err) {
       console.error("Failed saving your answers:", err)
     }
   }
 
-  return (
-    <Background>
-      <div className="...">
-        <Header
-          title="Two Truths One Lie"
-          subtitle="No one's believing it's more than 4 inches mate"
-        />
-        {labels.map((lab, idx) => (
-          <EditableButton
-            key={idx}
-            variant={idx === 1 ? "lie" : "truth"}
-            initialLabel={initialLabels[idx]}
-            onLabelChange={val => handleLabelChange(idx, val)}
-          />
-        ))}
-        {allEdited && (
-          <button
-            className="mt-4 py-2 px-6 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
-            onClick={handleSubmit}
-          >
-            Submit
-          </button>
-        )}
-      </div>
-    </Background>
-  )
+return (
+    <Background>
+      <Header
+        title="Two Truths One Lie"
+        subtitle="No one's believing it's more than 4 inches mate"
+      />
+      {labels.map((lab, idx) => (
+        <EditableButton
+          key={idx}
+          variant={idx === 1 ? "lie" : "truth"}
+          initialLabel={initialLabels[idx]}
+          onLabelChange={(val) => handleLabelChange(idx, val)}
+        />
+      ))}
+      {allEdited && (
+        <button
+          className="mt-4 py-2 px-6 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+          onClick={handleSubmit}
+        >
+          Submit
+        </button>
+      )}
+    </Background>
+  );
 }
 
 export default TwoTruthsOneLie

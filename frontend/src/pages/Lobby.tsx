@@ -68,7 +68,7 @@ const Lobby: React.FC = () => {
       setTeamId(created.team_id);
       setSelectedPub(created.pub_name);
       setTableNumber(created.table_number);
-      nav('/group');
+      nav('/explanation');
     } catch (error) {
       console.error('Error posting team data:', error);
       alert('Failed to start game. Please try again.');

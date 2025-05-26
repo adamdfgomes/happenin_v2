@@ -11,6 +11,7 @@ import WaitingRoom         from './pages/WaitingRoom'
 import Landing             from './pages/Landing'
 import GameWheel           from './pages/GameWheel'
 import InterGameMessage    from './pages/InterGameMessage'
+import MessageReceive      from './pages/MessageReceive'
 
 import TwoTruthsOneLie     from './pages/TwoTruthsOneLie/TwoTruthsOneLie'
 import TTOLwaitingroom     from './pages/TwoTruthsOneLie/TTOLwaitingroom'
@@ -29,6 +30,7 @@ const App: React.FC = () => (
         <Route path="/landing/:sessionId"                     element={<Landing />} />
         <Route path="/wheel/:sessionId"                       element={<GameWheel />} />
         <Route path="/message/:sessionId"                     element={<InterGameMessage />} />
+        <Route path="/messagereceive/:sessionId"              element={<MessageReceive />} />
 
         <Route path="/two-truths-one-lie/:sessionId"          element={<TwoTruthsOneLie />} />
         <Route path="/two-truths-one-lie/:sessionId/waiting"  element={<TTOLwaitingroom />} />

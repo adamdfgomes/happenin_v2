@@ -243,3 +243,41 @@ export async function postTTOLAnswers(
   }
   return res.json()
 }
+
+/**
+ * Persist an inter-game message.
+ */
+export async function postMessage(
+  sessionId: string,
+  teamId: string,
+  text: string
+): Promise<{ id: number; session_id: string; team_id: string; text: string }> {
+  const res = await fetch('/api/messages', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ session_id: sessionId, team_id: teamId, text })
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Failed to post message: ${err}`)
+  }
+  return res.json()
+}
+
+
+export async function updateTTOLReady(
+  sessionId: string,
+  playerSlot: 1 | 2,
+  ready: boolean
+): Promise<void> {
+  const field = playerSlot === 1 ? 'player1_ready' : 'player2_ready'
+  const res = await fetch(`/api/twolies/${sessionId}/ready`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ [field]: ready }),
+  })
+  if (!res.ok) {
+    const errorBody = await res.text()
+    throw new Error(`Failed to update TTOL ready: ${errorBody}`)
+  }
+}

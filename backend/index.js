@@ -224,6 +224,61 @@ app.post('/api/twolies', async (req, res) => {
   }
 });
 
+/**
++ * POST a chat message for a session/team.
++ */
+ app.post('/api/messages', async (req, res) => {
+   const { session_id, team_id, text } = req.body
+   if (!session_id || !team_id || typeof text !== 'string') {
+     return res.status(400).json({ error: 'session_id, team_id and text are required' })
+   }
+   try {
+     const { data, error, status } = await supabase
+       .from('messages')
+       .insert([{ session_id, team_id, text }])
+       .select()
+       .single()
+     if (error) {
+       return res.status(status || 500).json({ error: error.message })
+     }
+     return res.status(201).json(data)
+   } catch (err) {
+     console.error('Message insert error', err)
+     return res.status(500).json({ error: 'Internal server error' })
+   }
+ })
+
+// PATCH: set a TTOL row’s ready flags
+app.patch('/api/twolies/:sessionId/ready', async (req, res) => {
+  const { sessionId } = req.params
+  const updates = {}
+  if (req.body.player1_ready === true) updates.player1_ready = true
+  if (req.body.player2_ready === true) updates.player2_ready = true
+
+  if (Object.keys(updates).length === 0) {
+    return res
+      .status(400)
+      .json({ error: 'Must send { player1_ready: true } or { player2_ready: true }' })
+  }
+
+  try {
+    const { data, error, status } = await supabase
+      .from('two-truths-one-lie')
+      .update(updates)
+      .eq('session_id', sessionId)
+      .select()
+      .single()
+
+    if (error) {
+      return res.status(status || 500).json({ error: error.message })
+    }
+    return res.json(data)
+  } catch (err) {
+    console.error('TTOL ready update error', err)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

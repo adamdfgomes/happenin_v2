@@ -4,6 +4,7 @@ import Header from '../components/Header'
 import { useGameSession } from '../context/GameSessionContext'
 import useFetchSessionID from '../hooks/useFetchSessionID'
 import supabase from '../utils/supabasePublicClient'
+import Background from '../components/Background';
 
 const WaitingRoom: React.FC = () => {
   const {
@@ -129,7 +130,7 @@ const WaitingRoom: React.FC = () => {
   }
 
   return (
-    <main className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white p-4">
+    <Background>
       <Header title="Hold Tight!" />
       <div className="mt-10 flex flex-col items-center gap-6">
         <div className="text-5xl font-mono tracking-widest">
@@ -151,7 +152,7 @@ const WaitingRoom: React.FC = () => {
             : 'We’ll redirect as soon as a match is found.'}
         </p>
       </div>
-    </main>
+    </Background>
   )
 }
 

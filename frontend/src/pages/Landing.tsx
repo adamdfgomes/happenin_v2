@@ -5,6 +5,7 @@ import useFetchSelectedGame from '../hooks/useFetchSelectedGame'
 import supabase from '../utils/supabasePublicClient'   // ← add this
 import Button from '../components/Button'
 import { updateSessionReady } from '../utils/api'     // note: rematchTeam is removed
+import Background from '../components/Background';
 
 const Landing: FC = () => {
   const {
@@ -161,7 +162,7 @@ const Landing: FC = () => {
   }
 
   return (
-    <main className="relative min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+    <Background>
       {readyTimer !== null && (
         <div className="absolute top-4 right-4 bg-white text-gray-800 px-3 py-1 rounded shadow">
           Time left: {readyTimer}s
@@ -179,7 +180,7 @@ const Landing: FC = () => {
       >
         {me.ready ? 'Ready!' : 'Ready Up'}
       </Button>
-    </main>
+    </Background>
   )
 }
 

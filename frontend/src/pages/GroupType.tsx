@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Button from '../components/Button';
 import { useGameSession } from '../context/GameSessionContext';
 import { updateTeamGroupType } from '../utils/api';
+import Background from '../components/Background';
 
 const TeamSetup: React.FC = () => {
   const { setGroupType, teamId } = useGameSession();
@@ -29,7 +30,7 @@ const TeamSetup: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex flex-col items-center justify-center text-white p-4">
+    <Background>
       <Header title="What's Your Group?" />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full max-w-sm">
@@ -66,7 +67,7 @@ const TeamSetup: React.FC = () => {
           Next
         </Button>
       </form>
-    </main>
+    </Background>
   );
 };
 

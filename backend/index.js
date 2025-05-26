@@ -180,6 +180,51 @@ app.patch('/api/sessions/:sessionId', async (req, res) => {
   }
 });
 
+// POST TTOL answers
+app.post('/api/twolies', async (req, res) => {
+  const {
+    session_id,
+    p1_truth1,
+    p1_truth2,
+    p1_lie,
+    p2_truth1,
+    p2_truth2,
+    p2_lie,
+  } = req.body;
+
+  // session_id is required; everything else is optional
+  if (!session_id) {
+    return res.status(400).json({ error: 'session_id is required' });
+  }
+
+  // Build only the fields the client sent
+  const payload = { session_id };
+  if (typeof p1_truth1 === 'string') payload.p1_truth1 = p1_truth1;
+  if (typeof p1_truth2 === 'string') payload.p1_truth2 = p1_truth2;
+  if (typeof p1_lie    === 'string') payload.p1_lie    = p1_lie;
+  if (typeof p2_truth1 === 'string') payload.p2_truth1 = p2_truth1;
+  if (typeof p2_truth2 === 'string') payload.p2_truth2 = p2_truth2;
+  if (typeof p2_lie    === 'string') payload.p2_lie    = p2_lie;
+
+  try {
+    const { data, error, status } = await supabase
+      .from('two-truths-one-lie')               // make sure your table name uses underscores
+      .upsert([payload], { onConflict: ['session_id'] })
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(status || 500).json({ error: error.message });
+    }
+    // 200 OK whether it was an insert or an update
+    return res.json(data);
+  } catch (err) {
+    console.error('TTOL upsert error', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });

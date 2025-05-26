@@ -6,6 +6,7 @@ import Wheel from '../components/Wheel'
 import { useGameSession } from '../context/GameSessionContext'
 import useFetchSessionID from '../hooks/useFetchSessionID'
 import useFetchSelectedGame from '../hooks/useFetchSelectedGame'
+import Background from '../components/Background';
 
 const GameWheel: React.FC = () => {
   useFetchSessionID()
@@ -27,11 +28,11 @@ const GameWheel: React.FC = () => {
   }, [nav, selectedGame, sessionId])
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex flex-col items-center justify-center text-white p-4">
+    <Background>
       <Header title="Selecting your game" subtitle="Game time!" />
 
       <Wheel options={options} onSpinComplete={handleSpinComplete} />
-    </main>
+    </Background>
   )
 }
 

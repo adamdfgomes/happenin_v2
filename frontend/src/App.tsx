@@ -9,23 +9,24 @@ import GroupTypeSelection  from './pages/GroupType'
 import WaitingRoom         from './pages/WaitingRoom'
 import Landing             from './pages/Landing'
 import GameWheel           from './pages/GameWheel'
-import TriviaGame          from './pages/TriviaGame'
-import TwoTruthsOneLie     from './pages/TwoTruthsOneLie'
-import DrawingGame         from './pages/DrawingGame'
+
+import TwoTruthsOneLie     from './pages/TwoTruthsOneLie/TwoTruthsOneLie'
+import TTOLwaitingroom     from './pages/TwoTruthsOneLie/TTOLwaitingroom'
 
 const App: React.FC = () => (
   <BrowserRouter>
     <GameSessionProvider>
       <Routes>
-        <Route path="/"                               element={<Lobby />} />
-        <Route path="/team"                           element={<TeamNameCreator />} />
-        <Route path="/group"                          element={<GroupTypeSelection />} />
-        <Route path="/waiting"                        element={<WaitingRoom />} />
-        <Route path="/landing/:sessionId"             element={<Landing />} />
-        <Route path="/wheel/:sessionId"               element={<GameWheel />} />
-        <Route path="/trivia/:sessionId"              element={<TriviaGame />} />
-        <Route path="/two-truths-one-lie/:sessionId"  element={<TwoTruthsOneLie />} />
-        <Route path="/drawing/:sessionId"             element={<DrawingGame />} />
+        <Route path="/"                                       element={<Lobby />} />
+        <Route path="/team"                                   element={<TeamNameCreator />} />
+        <Route path="/group"                                  element={<GroupTypeSelection />} />
+        <Route path="/waiting"                                element={<WaitingRoom />} />
+        <Route path="/landing/:sessionId"                     element={<Landing />} />
+        <Route path="/wheel/:sessionId"                       element={<GameWheel />} />
+
+        <Route path="/two-truths-one-lie/:sessionId"          element={<TwoTruthsOneLie />} />
+        <Route path="/two-truths-one-lie/:sessionId/waiting"  element={<TTOLwaitingroom />} />
+
       </Routes>
     </GameSessionProvider>
   </BrowserRouter>

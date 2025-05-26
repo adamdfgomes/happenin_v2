@@ -7,6 +7,7 @@ import NumberInput from '../components/NumberInput';
 import usePubs from '../hooks/usePubs';
 import { postTeamData } from '../utils/api';
 import { useGameSession } from '../context/GameSessionContext';
+import Background from '../components/Background';
 
 const Lobby: React.FC = () => {
   const nav = useNavigate();
@@ -75,7 +76,7 @@ const Lobby: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex flex-col items-center justify-center text-white p-4">
+    <Background>
       <img
         src="/images/logov1.png"
         alt="Happenin Logo"
@@ -107,7 +108,7 @@ const Lobby: React.FC = () => {
       >
         Start Game
       </Button>
-    </main>
+    </Background>
   );
 };
 

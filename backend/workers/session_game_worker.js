@@ -6,7 +6,7 @@ import throttle from 'lodash/throttle.js'
 import { acquireLock, releaseLock } from './lockHelpers.js'
 
 // List of available games (must match front-end options)
-const GAMES = ['trivia', 'two-truths-one-lie', 'drawing']
+//const GAMES = ['trivia', 'two-truths-one-lie', 'drawing']
 
 // pick a unique lock ID for cleanup (make sure your locks table allows it)
 const GAME_LOCK_KEY = 44
@@ -17,6 +17,23 @@ const GAME_LOCK_KEY = 44
  * 3. Persist selected_game field in sessions table (only if still null).
  */
 export async function processSessions() {
+  // --- fetch active games from Supabase ---
+  const { data: gameRows, error: gameErr } = await adminClient
+    .from('games')
+    .select('name')
+    .eq('active', true)
+
+  if (gameErr) {
+    console.error('Failed to fetch active games:', gameErr)
+    return
+  }
+
+  const GAMES = gameRows.map(g => g.name).filter(Boolean)
+  if (GAMES.length === 0) {
+    console.log('[SessionGameWorker] no active games to assign')
+    return
+  }
+
   try {
     const { data: pending, error: fetchErr } = await adminClient
       .from('sessions')

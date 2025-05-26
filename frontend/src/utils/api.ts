@@ -217,3 +217,29 @@ export async function updateSessionReady(
     throw new Error(`Failed to update ready status: ${err}`)
   }
 }
+
+/**
+ * Persist a player's truths and lies.
+ */
+export async function postTTOLAnswers(
+  sessionId: string,
+  answers: {
+    p1_truth1?: string
+    p1_truth2?: string
+    p1_lie?:    string
+    p2_truth1?: string
+    p2_truth2?: string
+    p2_lie?:    string
+  }
+): Promise<{ session_id: string }> {
+  const res = await fetch('/api/twolies', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ session_id: sessionId, ...answers }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Error saving TTOL answers: ${err}`)
+  }
+  return res.json()
+}

@@ -243,7 +243,7 @@ app.post('/api/messages', async (req, res) => {
     const { data, error, status } = await supabase
       .from('messages')
       .insert([{ session_id, team_id, text }])
-      .select()
+      .select('id, session_id, team_id, text, created_at')
       .single()
 
     if (error) {

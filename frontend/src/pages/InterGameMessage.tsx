@@ -28,18 +28,20 @@ const InterGameMessage: React.FC = () => {
     return () => clearInterval(interval)
   }, [])
 
-  // 2) When it hits zero, fire the send
+  // 2) When it hits zero, fire the send — **await** the inserted row
   useEffect(() => {
     if (timeLeft > 0) return
     const sendAndGo = async () => {
-      // fire request
       try {
-        console.log('Submitting message:', { sessionId, teamId, text: message })
-        await postMessage(sessionId!, teamId!, message)
+        const row = await postMessage(sessionId!, teamId!, message)
+        // Pass the exact created_at of that row into location.state
+        navigate(
+          `/messagereceive/${sessionId}`,
+          { state: { since: row.created_at } }
+        )
       } catch (err) {
         console.error('Failed to send message:', err)
-      } finally {
-        // navigate on regardless
+        // fallback navigation anyway
         navigate(`/messagereceive/${sessionId}`)
       }
     }

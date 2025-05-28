@@ -35,7 +35,7 @@ const Landing: FC = () => {
   // 1️⃣ 2s delay for splash
   const [minDelayPassed, setMinDelayPassed] = useState(false)
   useEffect(() => {
-    const t = setTimeout(() => setMinDelayPassed(true), 2000)
+    const t = setTimeout(() => setMinDelayPassed(true), 1000)
     return () => clearTimeout(t)
   }, [])
 

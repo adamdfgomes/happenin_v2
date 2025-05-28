@@ -22,23 +22,22 @@ const MessageReceive: React.FC = () => {
   const [showReactions, setShowReactions] = useState(false)
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null)
 
-  // Determine other team's name from hook
   const otherTeamName = them.name || 'Opponent'
 
-  // 1) enforce a 2s minimum “waiting” screen
+  // 1) 2s splash
   useEffect(() => {
     const t = setTimeout(() => setMinDelayPassed(true), 2000)
     return () => clearTimeout(t)
   }, [])
 
-  // 2) load the latest message from the other team, and subscribe for new ones
+  // 2) load most recent other-team message, then subscribe
   useEffect(() => {
     if (!sessionId || !teamId) return
 
     const loadOther = async () => {
       const { data, error } = await supabase
         .from<MsgRow>('messages')
-        .select('text,team_id')
+        .select('text,team_id,created_at')
         .eq('session_id', sessionId)
         .neq('team_id', teamId)
         .order('created_at', { ascending: false })
@@ -50,7 +49,6 @@ const MessageReceive: React.FC = () => {
         setGotOther(true)
       }
     }
-
     loadOther()
 
     const channel = supabase
@@ -63,8 +61,9 @@ const MessageReceive: React.FC = () => {
           table: 'messages',
           filter: `session_id=eq.${sessionId},team_id=neq.${teamId}`,
         },
-        () => {
-          loadOther()
+        ({ new: rec }: { new: MsgRow }) => {
+          setMessageText(rec.text)
+          setGotOther(true)
         }
       )
       .subscribe()
@@ -74,8 +73,7 @@ const MessageReceive: React.FC = () => {
     }
   }, [sessionId, teamId])
 
-  // 3) once *both* the 2 s have passed and we’ve got the message,
-  //    fire content & reaction animations
+  // 3) animate once we have both splash + message
   useEffect(() => {
     if (minDelayPassed && gotOther) {
       const t1 = setTimeout(() => setShowContent(true), 300)
@@ -87,14 +85,12 @@ const MessageReceive: React.FC = () => {
     }
   }, [minDelayPassed, gotOther])
 
-  // Reaction handlers
   const handleReactionClick = (emoji: string) => {
     setSelectedReaction(emoji)
     setTimeout(() => navigate(`/factfile/${sessionId}`), 1000)
   }
   const handleContinue = () => navigate(`/factfile/${sessionId}`)
 
-  // STILL waiting?
   if (!minDelayPassed || !gotOther) {
     return (
       <Background>
@@ -109,7 +105,6 @@ const MessageReceive: React.FC = () => {
     )
   }
 
-  // Now render the bubble + emojis
   const reactions = [
     { emoji: '😍', label: 'Love it' },
     { emoji: '😂', label: 'Funny' },
@@ -122,7 +117,6 @@ const MessageReceive: React.FC = () => {
     <Background>
       <Header title="Message from the other team" />
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl">
-        {/* Bubble + name */}
         <div
           className={`relative w-full mb-8 transition-all duration-500 ${
             showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
@@ -141,8 +135,6 @@ const MessageReceive: React.FC = () => {
             />
           </div>
         </div>
-
-        {/* Reactions */}
         <div
           className={`flex gap-4 mb-8 transition-all duration-500 ${
             showReactions ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
@@ -161,8 +153,6 @@ const MessageReceive: React.FC = () => {
             </button>
           ))}
         </div>
-
-        {/* Fallback continue if no emoji */}
         {!selectedReaction && showReactions && (
           <Button onClick={handleContinue}>Let's play the next game</Button>
         )}

@@ -251,7 +251,13 @@ export async function postMessage(
   sessionId: string,
   teamId: string,
   text: string
-): Promise<{ id: number; session_id: string; team_id: string; text: string }> {
+): Promise<{
+  id: number
+  session_id: string
+  team_id: string
+  text: string
+  created_at: string
+}> {
   const res = await fetch('/api/messages', {
     method: 'POST',
     headers: JSON_HEADERS,
@@ -261,7 +267,8 @@ export async function postMessage(
     const err = await res.text()
     throw new Error(`Failed to post message: ${err}`)
   }
-  return res.json()
+  // The API returns the inserted row, with created_at
+  return await res.json()
 }
 
 

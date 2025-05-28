@@ -1,51 +1,38 @@
 // src/hooks/useFetchSessionID.js
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { getTeamData } from '../utils/api'
 import supabase from '../utils/supabasePublicClient'
 import { useGameSession } from '../context/GameSessionContext'
 
-/**
- * Fetch `session_id` once both teamId and teamName are set in context,
- * then subscribe to realtime updates on that team row, reacting only when
- * the `session_id` column itself changes.
- */
 export default function useFetchSessionID() {
-  const { teamId, teamName, sessionId, setSessionId } = useGameSession()
+  // pull in both the current sessionId *and* the setter
+  const { teamId, sessionId, setSessionId } = useGameSession()
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  // Ref for debounce timer
-  const debounceRef = useRef(null)
+  const [error, setError]     = useState(null)
 
   useEffect(() => {
-    // Only run when we have teamId
     if (!teamId) {
       setLoading(false)
       return
     }
-
     setLoading(true)
     setError(null)
 
-    // Function to apply the session_id update
-    const applySessionUpdate = (newId) => {
-      setSessionId(newId)
-      setLoading(false)
-    }
-
-    // Debounced handler for real-time updates
-    const debouncedHandler = (payload) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => {
-        const oldId = payload.old.session_id
-        const newId = payload.new.session_id
-        if (newId && newId !== oldId) {
-          applySessionUpdate(newId)
+    // 1️⃣ Initial fetch
+    getTeamData(teamId)
+      .then(team => {
+        if (team.matched && team.session_id) {
+          setSessionId(team.session_id)
         }
-      }, 50)
-    }
+      })
+      .catch(err => {
+        setError(err.message || 'Fetch failed')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
 
-    // 1) Subscribe to realtime updates on this team row FIRST
+    // 2️⃣ REAL‐TIME via dedicated channel (Supabase JS v2)
     const channel = supabase
       .channel(`team_session_${teamId}`)
       .on(
@@ -54,30 +41,27 @@ export default function useFetchSessionID() {
           event: 'UPDATE',
           schema: 'public',
           table: 'teams',
-          filter: `team_id=eq.${teamId}`
+          filter: `team_id=eq.${teamId}`,
         },
-        debouncedHandler
+        ({ new: row }) => {
+          if (row.matched && row.session_id) {
+            setSessionId(row.session_id)
+            setLoading(false)
+          }
+        }
       )
-      .subscribe()
-
-    // 2) Then do the initial fetch via API
-    getTeamData(teamId)
-      .then(team => {
-        if (team.session_id) {
-          applySessionUpdate(team.session_id)
+      .subscribe(status => {
+        if (status === 'SUBSCRIPTION_ERROR') {
+          setError('Realtime subscription failed')
         }
       })
-      .catch(err => {
-        setError(err.message || 'Fetch failed')
-        setLoading(false)
-      })
 
-    // Cleanup on unmount or dependency change
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      if (channel) supabase.removeChannel(channel)
+      channel.unsubscribe()
+      supabase.removeChannel(channel)
     }
   }, [teamId, setSessionId])
 
+  // return the *same* sessionId you pulled in above
   return { sessionId, loading, error }
 }

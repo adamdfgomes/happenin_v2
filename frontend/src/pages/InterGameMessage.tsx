@@ -1,9 +1,9 @@
-// src/pages/InterGameMessage.tsx
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameSession } from '../context/GameSessionContext'
 import { postMessage } from '../utils/api'
 import Header from '../components/Header'
+import Background from '../components/Background'
 
 const InterGameMessage: React.FC = () => {
   const { sessionId, teamId } = useGameSession()
@@ -20,43 +20,38 @@ const InterGameMessage: React.FC = () => {
     'Ask them a question',
   ]
 
-  // Countdown timer + auto‐submit at 0 (no button)
+  // 1) Start 30s countdown once, on mount
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          sendAndNavigate()
-          return 0
-        }
-        return prev - 1
-      })
+    const interval = setInterval(() => {
+      setTimeLeft(t => Math.max(0, t - 1))
     }, 1000)
-    return () => clearInterval(timer)
-  }, [message, sessionId, teamId])
+    return () => clearInterval(interval)
+  }, [])
 
-  const sendAndNavigate = async () => {
-    if (!sessionId || !teamId) {
-      console.error('Missing sessionId or teamId in context')
-      navigate(`/messagereceive/${sessionId}`)
-      return
+  // 2) When it hits zero, fire the send
+  useEffect(() => {
+    if (timeLeft > 0) return
+    const sendAndGo = async () => {
+      // fire request
+      try {
+        console.log('Submitting message:', { sessionId, teamId, text: message })
+        await postMessage(sessionId!, teamId!, message)
+      } catch (err) {
+        console.error('Failed to send message:', err)
+      } finally {
+        // navigate on regardless
+        navigate(`/messagereceive/${sessionId}`)
+      }
     }
-    try {
-      await postMessage(sessionId, teamId, message)
-    } catch (err) {
-      console.error('Failed to send message:', err)
-    } finally {
-      // move to receive page regardless
-      navigate(`/messagereceive/${sessionId}`)
-    }
-  }
+    sendAndGo()
+  }, [timeLeft, sessionId, teamId, message, navigate])
 
   const handleSuggestionClick = (sug: string) => {
     setMessage(sug)
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex flex-col items-center text-white p-4">
+    <Background>
       <Header title="Send a message" />
 
       {/* Timer */}
@@ -89,7 +84,7 @@ const InterGameMessage: React.FC = () => {
           {message.length}/300 characters
         </div>
       </div>
-    </main>
+    </Background>
   )
 }
 

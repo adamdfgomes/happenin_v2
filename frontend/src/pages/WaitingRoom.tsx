@@ -3,56 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import { useGameSession } from '../context/GameSessionContext'
 import useFetchSessionID from '../hooks/useFetchSessionID'
-import supabase from '../utils/supabasePublicClient'
 import Background from '../components/Background';
 
 const WaitingRoom: React.FC = () => {
   const {
     startTime,
-    teamId,
     sessionId,      // from context
     setSessionId,   // setter in context
-    setSelectedGame,
-    setPlayer1Ready,
-    setPlayer2Ready,
   } = useGameSession()
 
-  // Immediately clear any stale session/context on mount
-  useEffect(() => {
-    setSessionId(null)
-    setSelectedGame(null)
-    setPlayer1Ready(false)
-    setPlayer2Ready(false)
-  }, [setSessionId, setSelectedGame, setPlayer1Ready, setPlayer2Ready])
-
-  // Hook that watches supabase for new session_id on this team
-  useEffect(() => {
-    if (!teamId) return
-
-    const channel = supabase
-      .channel(`team_session_${teamId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'teams',
-          filter: `team_id=eq.${teamId}`,
-        },
-        ({ new: row }) => {
-          // only navigate when we truly have a new match
-          if (row.session_id && row.matched) {
-            setSessionId(row.session_id)
-            // and then our existing redirect effect (below) will fire
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [teamId, setSessionId])
 
   // Now use your existing hook to expose sessionId
   const {

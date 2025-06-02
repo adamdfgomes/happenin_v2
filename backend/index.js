@@ -16,6 +16,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // --- Teams Endpoints ---
+
 // GET a single team by ID
 app.get('/api/teams/:teamId', async (req, res) => {
   const { teamId } = req.params;
@@ -122,6 +123,7 @@ app.patch('/api/teams/:teamId', async (req, res) => {
 });
 
 // --- Sessions Endpoints ---
+
 // GET a single session by ID
 app.get('/api/sessions/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
@@ -141,7 +143,7 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
   }
 });
 
-// PATCH: whitelist only session fields (selected_game, player1_ready, player2_ready)
+// PATCH: whitelist session fields (selected_game, player1_ready, player2_ready, in_session)
 app.patch('/api/sessions/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const payload = req.body || {};
@@ -161,6 +163,12 @@ app.patch('/api/sessions/:sessionId', async (req, res) => {
     if (typeof payload.player2_ready !== 'boolean')
       return res.status(400).json({ error: 'player2_ready must be a boolean' });
     updateData.player2_ready = payload.player2_ready;
+  }
+  if (payload.hasOwnProperty('in_session')) {
+    if (typeof payload.in_session !== 'boolean') {
+      return res.status(400).json({ error: 'in_session must be a boolean' });
+    }
+    updateData.in_session = payload.in_session;
   }
 
   if (Object.keys(updateData).length === 0)
@@ -256,38 +264,6 @@ app.post('/api/messages', async (req, res) => {
   }
 })
 
-// PATCH: set a TTOL row’s ready flags
-app.patch('/api/twolies/:sessionId/ready', async (req, res) => {
-  const { sessionId } = req.params
-  const updates = {}
-  if (req.body.player1_ready === true) updates.player1_ready = true
-  if (req.body.player2_ready === true) updates.player2_ready = true
-
-  if (Object.keys(updates).length === 0) {
-    return res
-      .status(400)
-      .json({ error: 'Must send { player1_ready: true } or { player2_ready: true }' })
-  }
-
-  try {
-    const { data, error, status } = await supabase
-      .from('two-truths-one-lie')
-      .update(updates)
-      .eq('session_id', sessionId)
-      .select()
-      .single()
-
-    if (error) {
-      return res.status(status || 500).json({ error: error.message })
-    }
-    return res.json(data)
-  } catch (err) {
-    console.error('TTOL ready update error', err)
-    return res.status(500).json({ error: 'Internal server error' })
-  }
-})
-
-
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
-});
+})

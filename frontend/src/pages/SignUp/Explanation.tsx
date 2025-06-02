@@ -1,7 +1,7 @@
 import React from 'react';
-import Header from '../components/Header';
-import Button from '../components/Button';
-import Background from '../components/Background';
+import Header from '../../components/Header';
+import Button from '../../components/Button';
+import Background from '../../components/Background';
 import { useNavigate } from 'react-router-dom';
 
 const Explanation: React.FC = () => {
@@ -27,7 +27,7 @@ const Explanation: React.FC = () => {
       number: 4,
       title: "Game 2",
       description: "Continue the fun with another game"
-    },
+    }, 
     {
       number: 5,
       title: "Send a message to them",

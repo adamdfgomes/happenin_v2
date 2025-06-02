@@ -1,12 +1,12 @@
 // src/pages/MessageReceive.tsx
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import supabase from '../utils/supabasePublicClient'
-import { useGameSession } from '../context/GameSessionContext'
-import useFetchSelectedGame from '../hooks/useFetchSelectedGame'
-import Header from '../components/Header'
-import Background from '../components/Background'
-import Button from '../components/Button'
+import supabase from '../../utils/supabasePublicClient'
+import { useGameSession } from '../../context/GameSessionContext'
+import useFetchSelectedGame from '../../hooks/useFetchSelectedGame'
+import Header from '../../components/Header'
+import Background from '../../components/Background'
+import Button from '../../components/Button'
 
 type MsgRow = { text: string; team_id: string; created_at: string }
 

@@ -3,15 +3,17 @@ import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { GameSessionProvider } from './context/GameSessionContext'
 
-import Lobby               from './pages/Lobby'
-import Explanation         from './pages/Explanation'
-import TeamNameCreator     from './pages/TeamNameCreator'
-import GroupTypeSelection  from './pages/GroupType'
-import WaitingRoom         from './pages/WaitingRoom'
-import Landing             from './pages/Landing'
-import GameWheel           from './pages/GameWheel'
-import InterGameMessage    from './pages/InterGameMessage'
-import MessageReceive      from './pages/MessageReceive'
+import Lobby               from './pages/SignUp/Lobby'
+import Explanation         from './pages/SignUp/Explanation'
+import TeamNameCreator     from './pages/SignUp/TeamNameCreator'
+import GroupTypeSelection  from './pages/SignUp/GroupType'
+import WaitingRoom         from './pages/Matchmaking/WaitingRoom'
+import Landing             from './pages/Matchmaking/Landing'
+import GameWheel           from './pages/Matchmaking/GameWheel'
+import InterGameMessage    from './pages/Messages/InterGameMessage'
+import MessageReceive      from './pages/Messages/MessageReceive'
+import Chatroom            from './pages/Messages/Chatroom'
+import ReadyUp             from './pages/General/ReadyUp'
 
 import TwoTruthsOneLie     from './pages/TwoTruthsOneLie/TwoTruthsOneLie'
 import TTOLwaitingroom     from './pages/TwoTruthsOneLie/TTOLwaitingroom'
@@ -31,6 +33,8 @@ const App: React.FC = () => (
         <Route path="/wheel/:sessionId"                       element={<GameWheel />} />
         <Route path="/message/:sessionId"                     element={<InterGameMessage />} />
         <Route path="/messagereceive/:sessionId"              element={<MessageReceive />} />
+        <Route path="/chat/:sessionId"                        element={<Chatroom />} />
+        <Route path="/readyup/:sessionId"                     element={<ReadyUp />} />
 
         <Route path="/two-truths-one-lie/:sessionId"          element={<TwoTruthsOneLie />} />
         <Route path="/two-truths-one-lie/:sessionId/waiting"  element={<TTOLwaitingroom />} />

@@ -1,12 +1,12 @@
 // src/pages/GameWheel.tsx
 import React, { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
-import Wheel from '../components/Wheel'
-import { useGameSession } from '../context/GameSessionContext'
-import useFetchSessionID from '../hooks/useFetchSessionID'
-import useFetchSelectedGame from '../hooks/useFetchSelectedGame'
-import Background from '../components/Background'
+import Header from '../../components/Header'
+import Wheel from '../../components/Wheel'
+import { useGameSession } from '../../context/GameSessionContext'
+import useFetchSessionID from '../../hooks/useFetchSessionID'
+import useFetchSelectedGame from '../../hooks/useFetchSelectedGame'
+import Background from '../../components/Background'
 
 const GameWheel: React.FC = () => {
   const navigate = useNavigate()

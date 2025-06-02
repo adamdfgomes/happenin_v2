@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGameSession } from '../context/GameSessionContext'
-import { postMessage } from '../utils/api'
-import Header from '../components/Header'
-import Background from '../components/Background'
+import { useGameSession } from '../../context/GameSessionContext'
+import { postMessage } from '../../utils/api'
+import Header from '../../components/Header'
+import Background from '../../components/Background'
 
 const InterGameMessage: React.FC = () => {
   const { sessionId, teamId } = useGameSession()

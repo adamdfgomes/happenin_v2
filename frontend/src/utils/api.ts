@@ -270,21 +270,3 @@ export async function postMessage(
   // The API returns the inserted row, with created_at
   return await res.json()
 }
-
-
-export async function updateTTOLReady(
-  sessionId: string,
-  playerSlot: 1 | 2,
-  ready: boolean
-): Promise<void> {
-  const field = playerSlot === 1 ? 'player1_ready' : 'player2_ready'
-  const res = await fetch(`/api/twolies/${sessionId}/ready`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ [field]: ready }),
-  })
-  if (!res.ok) {
-    const errorBody = await res.text()
-    throw new Error(`Failed to update TTOL ready: ${errorBody}`)
-  }
-}

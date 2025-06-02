@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
-import { useGameSession } from '../context/GameSessionContext'
-import useFetchSessionID from '../hooks/useFetchSessionID'
-import Background from '../components/Background';
+import Header from '../../components/Header'
+import { useGameSession } from '../../context/GameSessionContext'
+import useFetchSessionID from '../../hooks/useFetchSessionID'
+import Background from '../../components/Background';
 
 const WaitingRoom: React.FC = () => {
   const {
@@ -53,7 +53,7 @@ const WaitingRoom: React.FC = () => {
   // Redirect effect: only when countdown hits zero AND we have a NEW sessionId
   useEffect(() => {
     if (timeLeft === 0 && sessionId) {
-      navigate(`/landing/${sessionId}`)
+      navigate(`/landing/${sessionId}`, { state: { next: 'wheel' } })
     }
   }, [timeLeft, sessionId, navigate])
 

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../components/Header';
-import Button from '../components/Button';
-import { useGameSession } from '../context/GameSessionContext';
-import { updateTeamName } from '../utils/api';
-import Background from '../components/Background';
+import Header from '../../components/Header';
+import Button from '../../components/Button';
+import { useGameSession } from '../../context/GameSessionContext';
+import { updateTeamName } from '../../utils/api';
+import Background from '../../components/Background';
 
 const TeamNameSetup: React.FC = () => {
   const { setTeamName, teamId } = useGameSession();

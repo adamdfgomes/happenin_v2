@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../components/Header';
-import Button from '../components/Button';
-import Select from '../components/Select';
-import NumberInput from '../components/NumberInput';
-import usePubs from '../hooks/usePubs';
-import { postTeamData } from '../utils/api';
-import { useGameSession } from '../context/GameSessionContext';
-import Background from '../components/Background';
+import Header from '../../components/Header';
+import Button from '../../components/Button';
+import Select from '../../components/Select';
+import NumberInput from '../../components/NumberInput';
+import usePubs from '../../hooks/usePubs';
+import { postTeamData } from '../../utils/api';
+import { useGameSession } from '../../context/GameSessionContext';
+import Background from '../../components/Background';
 
 const Lobby: React.FC = () => {
   const nav = useNavigate();

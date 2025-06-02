@@ -1,5 +1,6 @@
-import React from 'react';
-import { Textfit } from 'react-textfit';
+// src/components/TwoTruthsOneLie/SelectableButton.tsx
+import React from "react"
+import FitText from "./FitText"
 
 /**
  * **SelectableButton** – stateless / controlled version.
@@ -8,50 +9,65 @@ import { Textfit } from 'react-textfit';
  * clicking one button can automatically deselect the others.
  */
 interface SelectableButtonProps {
-  /** Text shown inside the button */
-  label: string;
-  /** Whether this particular button is selected */
-  selected: boolean;
-  /** Required click handler – parent should toggle the selected item */
-  onClick: () => void;
+  /** Text shown inside the button */
+  label: string
+  /** Whether this particular button is selected */
+  selected: boolean
+  /** Required click handler – parent should toggle the selected item */
+  onClick: () => void
 }
 
 const bgMap = {
-  truth: {
-    base: 'bg-blue-400',
-    hover: 'hover:bg-blue-500',
-    ring: 'focus:ring-2 focus:ring-blue-300',
-  },
-  lie: {
-    base: 'bg-red-400',
-    hover: 'hover:bg-red-500',
-    ring: 'focus:ring-2 focus:ring-red-300',
-  },
-} as const;
+  truth: {
+    base: "bg-blue-400",
+    hover: "hover:bg-blue-500",
+    ring: "focus:ring-2 focus:ring-blue-300",
+  },
+  lie: {
+    base: "bg-red-400",
+    hover: "hover:bg-red-500",
+    ring: "focus:ring-2 focus:ring-red-300",
+  },
+} as const
 
 const SelectableButton: React.FC<SelectableButtonProps> = ({
-  label,
-  selected,
-  onClick,
+  label,
+  selected,
+  onClick,
 }) => {
-  // Red "lie" scheme when selected, blue "truth" scheme otherwise.
-  const { base, hover, ring } = selected ? bgMap.lie : bgMap.truth;
+  // Red "lie" scheme when selected, blue "truth" scheme otherwise.
+  const { base, hover, ring } = selected ? bgMap.lie : bgMap.truth
 
-  const classes = `w-full h-32 text-2xl text-white text-center py-2 px-4 rounded ${ring} whitespace-pre-wrap break-words overflow-hidden flex items-center justify-center focus:outline-none`;
+  const classes = `
+    w-full
+    h-32
+    text-2xl
+    text-white
+    text-center
+    py-2
+    px-4
+    rounded
+    ${ring}
+    whitespace-pre-wrap
+    break-words
+    overflow-hidden
+    flex
+    items-center
+    justify-center
+    focus:outline-none
+  `.trim()
 
-  return (
-    <button onClick={onClick} className={`${base} ${hover} ${classes}`}>
-      <Textfit
-        mode="multi"
-        forceSingleModeWidth={false}
-        max={32}
-        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-      >
-        {label}
-      </Textfit>
-    </button>
-  );
-};
+  return (
+    <button onClick={onClick} className={`${base} ${hover} ${classes}`}>
+      <FitText
+        minFontSize={12}
+        maxFontSize={32}
+        style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+      >
+        {label}
+      </FitText>
+    </button>
+  )
+}
 
-export default SelectableButton;
-
+export default SelectableButton

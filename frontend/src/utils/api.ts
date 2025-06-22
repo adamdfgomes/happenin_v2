@@ -163,6 +163,8 @@ export async function getSessionData(
   player1_ready?: boolean
   player2_ready?: boolean
   start_time?: string
+  player1_score?: number    // ← added
+  player2_score?: number    // ← added
 }> {
   const res = await fetch(`/api/sessions/${sessionId}`, {
     method: 'GET',
@@ -296,4 +298,42 @@ export async function postlivechat(
   }
   // The API returns the inserted row, with created_at
   return await res.json()
+}
+
+/**
+ * Increment a player's score via your dedicated endpoint.
+ */
+export async function incrementSessionScore(
+  sessionId: string,
+  slot: 1 | 2
+): Promise<void> {
+  const res = await fetch(`/api/sessions/${sessionId}/score`, {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ playerSlot: slot }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to increment score: ${errText}`);
+  }
+}
+
+/**
+ * Mark the end of game 1 for player1 or player2 by toggling
+ * the `p1_gameover` / `p2_gameover` flag in the sessions row.
+ */
+export async function setGameEndFlag(
+  sessionId: string,
+  slot: 1 | 2
+): Promise<void> {
+  const field = slot === 1 ? 'p1_gameover' : 'p2_gameover'
+  const res = await fetch(`/api/sessions/${sessionId}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ [field]: true }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Failed to set ${field}: ${text}`)
+  }
 }

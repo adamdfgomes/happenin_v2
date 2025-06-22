@@ -104,6 +104,31 @@ app.patch('/api/teams/:teamId', async (req, res) => {
       return res.status(400).json({ error: 'matched must be a boolean' });
     updateData.matched = payload.matched;
   }
+  if (payload.hasOwnProperty('player1_score')) {
+    if (typeof payload.player1_score !== 'number') {
+      return res.status(400).json({ error: 'player1_score must be a number' })
+    }
+    updateData.player1_score = payload.player1_score
+  }
+  if (payload.hasOwnProperty('player2_score')) {
+    if (typeof payload.player2_score !== 'number') {
+      return res.status(400).json({ error: 'player2_score must be a number' })
+    }
+    updateData.player2_score = payload.player2_score
+  }
+   // new flags for TTOL round end
+  if (payload.hasOwnProperty('p1_gameover')) {
+    if (typeof payload.p1_gameover !== 'boolean') {
+      return res.status(400).json({ error: 'p1_gameover must be boolean' })
+    }
+    updateData.p1_gameover = payload.p1_gameover
+  }
+  if (payload.hasOwnProperty('p2_gameover')) {
+    if (typeof payload.p2_gameover !== 'boolean') {
+      return res.status(400).json({ error: 'p2_gameover must be boolean' })
+    }
+    updateData.p2_gameover = payload.p2_gameover
+  }
 
   if (Object.keys(updateData).length === 0)
     return res.status(400).json({ error: 'No valid fields provided to update' });
@@ -169,6 +194,19 @@ app.patch('/api/sessions/:sessionId', async (req, res) => {
       return res.status(400).json({ error: 'in_session must be a boolean' });
     }
     updateData.in_session = payload.in_session;
+  }
+    // now also allow your TTOL‐end flags
+  if (payload.hasOwnProperty('p1_gameover')) {
+    if (typeof payload.p1_gameover !== 'boolean') {
+      return res.status(400).json({ error: 'p1_gameover must be boolean' })
+    }
+    updateData.p1_gameover = payload.p1_gameover
+  }
+  if (payload.hasOwnProperty('p2_gameover')) {
+    if (typeof payload.p2_gameover !== 'boolean') {
+      return res.status(400).json({ error: 'p2_gameover must be boolean' })
+    }
+    updateData.p2_gameover = payload.p2_gameover
   }
 
   if (Object.keys(updateData).length === 0)
@@ -293,6 +331,43 @@ app.post('/api/chatroom', async (req, res) => {
   } catch (err) {
     console.error('Message insert error', err)
     return res.status(500).json({ error: 'Internal server error' })
+  }
+});
+
+
+// POST /api/sessions/:sessionId/score
+app.post('/api/sessions/:sessionId/score', async (req, res) => {
+  const { sessionId } = req.params;
+  const { playerSlot } = req.body;
+  if (![1, 2].includes(playerSlot)) {
+    return res.status(400).json({ error: 'playerSlot must be 1 or 2' });
+  }
+
+  const col = playerSlot === 1 ? 'player1_score' : 'player2_score';
+  try {
+    // 1️⃣ read the existing score
+    const { data: existing, error: fetchErr } = await supabase
+      .from('sessions')
+      .select(col)
+      .eq('session_id', sessionId)
+      .single();
+    if (fetchErr) throw fetchErr;
+
+    const newScore = (existing[col] || 0) + 1;
+
+    // 2️⃣ write it back
+    const { data, error: updateErr, status } = await supabase
+      .from('sessions')
+      .update({ [col]: newScore })
+      .eq('session_id', sessionId)
+      .select()
+      .single();
+    if (updateErr) throw updateErr;
+
+    return res.json({ session: data });
+  } catch (err) {
+    console.error('Score increment error', err);
+    return res.status(500).json({ error: err.message });
   }
 });
 

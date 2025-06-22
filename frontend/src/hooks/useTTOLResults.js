@@ -1,22 +1,25 @@
+// src/hooks/useTTOLResults.js
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useGameSession } from '../context/GameSessionContext'
+import { incrementSessionScore, setGameEndFlag } from '../utils/api'
 
-/**
- * useTTOLResults()
- * Manages the reveal animation, drumroll, and navigation for the TTOL results page.
- */
 export function useTTOLResults() {
-  const { sessionId } = useGameSession()
+  const { sessionId, teamId, player1Id } = useGameSession()
   const { state } = useLocation()
   const { isCorrect = false } = state || {}
+
+  // control whether we show the result animation
   const [showResult, setShowResult] = useState(false)
+  // "correct" or "wrong" once revealed
   const [result, setResult] = useState(null)
+
+  // refs for drumroll animation
   const drumRef = useRef(null)
   const audioRef = useRef(null)
   const navigate = useNavigate()
 
-  // Play a short drumroll using Web Audio API
+  // Play a short drumroll using the Web Audio API
   const playDrumroll = () => {
     try {
       if (!audioRef.current) {
@@ -39,29 +42,41 @@ export function useTTOLResults() {
     }
   }
 
-  // 1️⃣ Drumroll + reveal after 2s
+  // 1️⃣ Drumroll listener + reveal after 2s
   useEffect(() => {
     const el = drumRef.current
     if (el) el.addEventListener('animationiteration', playDrumroll)
-    const revealTimeout = setTimeout(() => {
+    const timer = setTimeout(() => {
       setResult(isCorrect ? 'correct' : 'wrong')
       setShowResult(true)
     }, 2000)
     return () => {
       if (el) el.removeEventListener('animationiteration', playDrumroll)
-      clearTimeout(revealTimeout)
-      if (audioRef.current) audioRef.current.close()
+      clearTimeout(timer)
+      audioRef.current?.close()
     }
   }, [isCorrect])
 
-  // 2️⃣ Navigate to ReadyUp after another 2s
+  // 2️⃣ Once revealed, always set the TTOL-end flag, then optionally bump the score, then navigate
   useEffect(() => {
     if (!showResult || !sessionId) return
-    const navTimeout = setTimeout(() => {
-      navigate(`/score/${sessionId}`, { state: { next: 'chat' } })
+    const timer = setTimeout(async () => {
+      const slot = teamId === player1Id ? 1 : 2
+      try {
+        // mark this round ended for me (regardless of correct/wrong)
+        await setGameEndFlag(sessionId, slot)
+        // only increment score when they guessed correctly
+        if (isCorrect) {
+          await incrementSessionScore(sessionId, slot)
+        }
+      } catch (err) {
+        console.error('Post-TTOL update failed', err)
+      } finally {
+        navigate(`/score/${sessionId}`, { state: { next: 'chat' } })
+      }
     }, 2000)
-    return () => clearTimeout(navTimeout)
-  }, [showResult, sessionId, navigate])
+    return () => clearTimeout(timer)
+  }, [showResult, isCorrect, sessionId, teamId, player1Id, navigate])
 
   return { showResult, result, drumRef }
 }

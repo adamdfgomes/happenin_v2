@@ -337,3 +337,23 @@ export async function setGameEndFlag(
     throw new Error(`Failed to set ${field}: ${text}`)
   }
 }
+
+/**
+ * Reset one player's gameOver flag back to false (or true).
+ */
+export async function setGameOverFlag(
+  sessionId: string,
+  slot: 1 | 2,
+  value: boolean
+): Promise<void> {
+  const field = slot === 1 ? 'p1_gameover' : 'p2_gameover'
+  const res = await fetch(`/api/sessions/${sessionId}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ [field]: value }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Failed to set ${field}: ${text}`)
+  }
+}

@@ -1,62 +1,26 @@
 // src/pages/Scoreboard.tsx
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
-import useLandingLogic from '../../hooks/useLandingLogic'
-import useFetchSelectedGame from '../../hooks/useFetchSelectedGame'
-import { useGameSession } from '../../context/GameSessionContext'
-import Button from '../../components/Button'
+import useScoreboard from '../../hooks/useScoreboard'
 import Background from '../../components/Background'
-import { setGameOverFlag } from '../../utils/api'
+import Button from '../../components/Button'
 
-interface LocationState {
-  next?: string
-}
-
-const Scoreboard: React.FC = () => {
-  // 1️⃣ Pull sessionId from URL
+export default function Scoreboard() {
   const { sessionId: paramSessionId } = useParams<{ sessionId: string }>()
-  // 2️⃣ Sync into context
-  const { sessionId, setSessionId, teamId, player1Id } = useGameSession()
-  useEffect(() => {
-    if (paramSessionId && paramSessionId !== sessionId) {
-      setSessionId(paramSessionId)
-    }
-  }, [paramSessionId, sessionId, setSessionId])
+  const { state } = useLocation<{ next?: string }>()
+  const routeBase = state?.next ?? 'wheel'
 
-  // 3️⃣ Optional “next” param
-  const { state } = useLocation()
-  const { next: routeBase } = (state as LocationState) || {}
-
-  // 4️⃣ Ready-up logic (no countdown)
   const {
-    loading: landingLoading,
+    landingLoading,
+    fetchLoading,
+    stillWaiting,
+    meSession,
+    themSession,
     meReady,
-    handleReady,
-  } = useLandingLogic(routeBase ?? 'wheel', { noCountdown: true })
+    onReady,
+  } = useScoreboard(routeBase)
 
-  // 5️⃣ Fetch live session row (scores & end-flags)
-  const {
-    loading: fetchLoading,
-    me: meSession,
-    them: themSession,
-  } = useFetchSelectedGame()
-
-  // local “unlocked” once we first see both gameOver flags
-  const [unlocked, setUnlocked] = useState(false)
-
-  // 6️⃣ detect first time both flags are true
-  const bothDone =
-    !!meSession &&
-    !!themSession &&
-    meSession.gameOver &&
-    themSession.gameOver
-
-  useEffect(() => {
-    if (bothDone) setUnlocked(true)
-  }, [bothDone])
-
-  // 7️⃣ if not yet unlocked, show “Waiting…” spinner
-  if (!unlocked) {
+  if (landingLoading || fetchLoading || stillWaiting) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-semibold mb-4">Waiting for opponent…</h1>
@@ -65,11 +29,9 @@ const Scoreboard: React.FC = () => {
     )
   }
 
-  // 8️⃣ Once unlocked, show the scoreboard (and never go back)
   return (
     <Background>
       <h1 className="text-3xl font-bold mb-4">Scoreboard</h1>
-
       <p className="text-2xl mb-6 flex items-center justify-center space-x-8">
         <span>
           {meSession!.name}{' '}
@@ -81,25 +43,9 @@ const Scoreboard: React.FC = () => {
           <span className="font-bold text-green-300">({themSession!.score})</span>
         </span>
       </p>
-
-      <Button
-        onClick={async () => {
-          // normal ready-up
-          await handleReady()
-          // then reset just your gameOver flag back to false
-          try {
-            const slot = teamId === player1Id ? 1 : 2
-            await setGameOverFlag(sessionId!, slot, false)
-          } catch (err) {
-            console.error('Failed to reset gameOver flag:', err)
-          }
-        }}
-        disabled={meReady}
-      >
+      <Button onClick={onReady} disabled={meReady}>
         {meReady ? 'Waiting for opponent…' : 'Ready Up'}
       </Button>
     </Background>
   )
 }
-
-export default Scoreboard

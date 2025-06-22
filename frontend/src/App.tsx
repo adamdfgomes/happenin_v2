@@ -10,7 +10,7 @@ import GroupTypeSelection  from './pages/SignUp/GroupType'
 import WaitingRoom         from './pages/Matchmaking/WaitingRoom'
 import Landing             from './pages/Matchmaking/Landing'
 import GameWheel           from './pages/Matchmaking/GameWheel'
-import InterGameMessage    from './pages/Messages/InterGameMessage'
+import IntroMessage        from './pages/Messages/IntroMessage'
 import MessageReceive      from './pages/Messages/MessageReceive'
 import Chatroom            from './pages/Messages/Chatroom'
 import ReadyUp             from './pages/General/ReadyUp'
@@ -31,7 +31,7 @@ const App: React.FC = () => (
         <Route path="/waiting"                                element={<WaitingRoom />} />
         <Route path="/landing/:sessionId"                     element={<Landing />} />
         <Route path="/wheel/:sessionId"                       element={<GameWheel />} />
-        <Route path="/message/:sessionId"                     element={<InterGameMessage />} />
+        <Route path="/message/:sessionId"                     element={<IntroMessage />} />
         <Route path="/messagereceive/:sessionId"              element={<MessageReceive />} />
         <Route path="/chat/:sessionId"                        element={<Chatroom />} />
         <Route path="/readyup/:sessionId"                     element={<ReadyUp />} />

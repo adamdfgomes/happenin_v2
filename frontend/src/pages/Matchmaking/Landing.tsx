@@ -5,7 +5,7 @@ import Button from '../../components/Button'
 import Background from '../../components/Background'
 
 interface LocationState {
-  next?: string // e.g. "wheel" or "chat"
+  next?: string // e.g. "message" or "chat"
 }
 
 const Landing: React.FC = () => {
@@ -13,11 +13,11 @@ const Landing: React.FC = () => {
   //    because `useFetchSelectedGame` reads it from context)
   const { sessionId } = useParams<{ sessionId: string }>()
 
-  // ② pull location.state.next (defaults to "wheel")
+  // ② pull location.state.next (defaults to "message")
   const { state } = useLocation()
   const { next: routeBase } = (state as LocationState) || {}
 
-  // ③ call useLandingLogic; if routeBase is missing, default to "wheel"
+  // ③ call useLandingLogic; if routeBase is missing, default to "message"
   const {
     loading,
     readyTimer,
@@ -28,7 +28,7 @@ const Landing: React.FC = () => {
     showMissed,
     handleReady,
     handleRematch,
-  } = useLandingLogic(routeBase ?? 'wheel')
+  } = useLandingLogic(routeBase ?? 'message')
 
   // 1️⃣ Opponent was too slow → show a brief splash then re‐queue
   if (showOpponentSlow) {

@@ -22,7 +22,7 @@ import useGoToWaiting from './useGoToWaiting'
  *                             and skip writing `in_session = true` when both are ready.
  */
 export default function useLandingLogic(
-  routeBase = 'Wheel',
+  routeBase = 'message',
   { noCountdown = false } = {}
 ) {
   const navigate = useNavigate()

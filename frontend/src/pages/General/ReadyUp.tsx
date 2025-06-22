@@ -7,7 +7,7 @@ import Button from '../../components/Button'
 import Background from '../../components/Background'
 
 interface LocationState {
-  next?: string // e.g. "wheel" or "chat"
+  next?: string // e.g. "message" or "chat"
 }
 
 const ReadyUp: React.FC = () => {
@@ -22,7 +22,7 @@ const ReadyUp: React.FC = () => {
     }
   }, [paramSessionId, sessionId, setSessionId])
 
-  // 3️⃣ pull optional “next” from location.state (default to "wheel")
+  // 3️⃣ pull optional “next” from location.state (default to "message")
   const { state } = useLocation()
   const { next: routeBase } = (state as LocationState) || {}
 
@@ -33,7 +33,7 @@ const ReadyUp: React.FC = () => {
     themName,
     meReady,
     handleReady,
-  } = useLandingLogic(routeBase ?? 'wheel', { noCountdown: true })
+  } = useLandingLogic(routeBase ?? 'message', { noCountdown: true })
 
   // 5️⃣ If still fetching “me/them,” show a spinner
   if (loading) {

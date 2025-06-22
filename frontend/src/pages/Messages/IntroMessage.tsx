@@ -5,7 +5,7 @@ import { postMessage } from '../../utils/api'
 import Header from '../../components/Header'
 import Background from '../../components/Background'
 
-const InterGameMessage: React.FC = () => {
+const IntroMessage: React.FC = () => {
   const { sessionId, teamId } = useGameSession()
   const navigate = useNavigate()
 
@@ -54,7 +54,7 @@ const InterGameMessage: React.FC = () => {
 
   return (
     <Background>
-      <Header title="Send a message" />
+      <Header title="Better make a good impression..." />
 
       {/* Timer */}
       <div className="absolute top-4 right-4 text-2xl font-bold">
@@ -90,4 +90,4 @@ const InterGameMessage: React.FC = () => {
   )
 }
 
-export default InterGameMessage
+export default IntroMessage

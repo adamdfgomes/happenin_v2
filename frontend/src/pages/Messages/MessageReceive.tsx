@@ -87,9 +87,9 @@ const MessageReceive: React.FC = () => {
 
   const handleReactionClick = (emoji: string) => {
     setSelectedReaction(emoji)
-    setTimeout(() => navigate(`/factfile/${sessionId}`), 1000)
+    setTimeout(() => navigate(`/Wheel/${sessionId}`), 1000)
   }
-  const handleContinue = () => navigate(`/factfile/${sessionId}`)
+  const handleContinue = () => navigate(`/Wheel/${sessionId}`)
 
   if (!minDelayPassed || !gotOther) {
     return (
@@ -154,7 +154,7 @@ const MessageReceive: React.FC = () => {
           ))}
         </div>
         {!selectedReaction && showReactions && (
-          <Button onClick={handleContinue}>Let's play the next game</Button>
+          <Button onClick={handleContinue}>Let's play the first game</Button>
         )}
       </div>
     </Background>

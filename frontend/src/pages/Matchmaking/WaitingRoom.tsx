@@ -53,7 +53,7 @@ const WaitingRoom: React.FC = () => {
   // Redirect effect: only when countdown hits zero AND we have a NEW sessionId
   useEffect(() => {
     if (timeLeft === 0 && sessionId) {
-      navigate(`/landing/${sessionId}`, { state: { next: 'wheel' } })
+      navigate(`/landing/${sessionId}`, { state: { next: 'message' } })
     }
   }, [timeLeft, sessionId, navigate])
 

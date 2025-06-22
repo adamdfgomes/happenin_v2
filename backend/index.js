@@ -262,7 +262,39 @@ app.post('/api/messages', async (req, res) => {
     console.error('Message insert error', err)
     return res.status(500).json({ error: 'Internal server error' })
   }
-})
+});
+
+/**
+ * POST a chatroom message for a session/team.
+ */
+app.post('/api/chatroom', async (req, res) => {
+  const { session_id, team_id, text } = req.body
+
+  // Log it so we can verify what's coming in
+  console.log('POST /api/chatroom', { session_id, team_id, text })
+
+  if (!session_id || !team_id || typeof text !== 'string') {
+    return res
+      .status(400)
+      .json({ error: 'session_id, team_id and text (string) are required' })
+  }
+
+  try {
+    const { data, error, status } = await supabase
+      .from('chatroom')
+      .insert([{ session_id, team_id, text }])
+      .select('id, session_id, team_id, text, created_at')
+      .single()
+
+    if (error) {
+      return res.status(status || 500).json({ error: error.message })
+    }
+    return res.status(201).json(data)
+  } catch (err) {
+    console.error('Message insert error', err)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

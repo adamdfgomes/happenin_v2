@@ -13,7 +13,7 @@ import GameWheel           from './pages/Matchmaking/GameWheel'
 import IntroMessage        from './pages/Messages/IntroMessage'
 import MessageReceive      from './pages/Messages/MessageReceive'
 import Chatroom            from './pages/Messages/Chatroom'
-import ReadyUp             from './pages/General/ReadyUp'
+import Scoreboard          from './pages/General/Scoreboard'
 
 import TwoTruthsOneLie     from './pages/TwoTruthsOneLie/TwoTruthsOneLie'
 import TTOLwaitingroom     from './pages/TwoTruthsOneLie/TTOLwaitingroom'
@@ -34,7 +34,7 @@ const App: React.FC = () => (
         <Route path="/message/:sessionId"                     element={<IntroMessage />} />
         <Route path="/messagereceive/:sessionId"              element={<MessageReceive />} />
         <Route path="/chat/:sessionId"                        element={<Chatroom />} />
-        <Route path="/readyup/:sessionId"                     element={<ReadyUp />} />
+        <Route path="/score/:sessionId"                       element={<Scoreboard />} />
 
         <Route path="/two-truths-one-lie/:sessionId"          element={<TwoTruthsOneLie />} />
         <Route path="/two-truths-one-lie/:sessionId/waiting"  element={<TTOLwaitingroom />} />

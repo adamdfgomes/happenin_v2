@@ -1,4 +1,4 @@
-// src/pages/ReadyUp.tsx
+// src/pages/Scoreboard.tsx
 import React, { useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import useLandingLogic from '../../hooks/useLandingLogic'
@@ -10,7 +10,7 @@ interface LocationState {
   next?: string // e.g. "wheel" or "chat"
 }
 
-const ReadyUp: React.FC = () => {
+const Scoreboard: React.FC = () => {
   // 1️⃣ Pull `:sessionId` from URL
   const { sessionId: paramSessionId } = useParams<{ sessionId: string }>()
 
@@ -58,4 +58,4 @@ const ReadyUp: React.FC = () => {
   )
 }
 
-export default ReadyUp
+export default Scoreboard

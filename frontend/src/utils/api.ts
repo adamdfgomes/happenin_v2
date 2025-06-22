@@ -245,7 +245,7 @@ export async function postTTOLAnswers(
 }
 
 /**
- * Persist an inter-game message.
+ * Persist an intro message.
  */
 export async function postMessage(
   sessionId: string,
@@ -259,6 +259,33 @@ export async function postMessage(
   created_at: string
 }> {
   const res = await fetch('/api/messages', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ session_id: sessionId, team_id: teamId, text })
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Failed to post message: ${err}`)
+  }
+  // The API returns the inserted row, with created_at
+  return await res.json()
+}
+
+/**
+ * Persist a livechat.
+ */
+export async function postlivechat(
+  sessionId: string,
+  teamId: string,
+  text: string
+): Promise<{
+  id: number
+  session_id: string
+  team_id: string
+  text: string
+  created_at: string
+}> {
+  const res = await fetch('/api/chatroom', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({ session_id: sessionId, team_id: teamId, text })

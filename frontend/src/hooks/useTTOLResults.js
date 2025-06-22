@@ -58,7 +58,7 @@ export function useTTOLResults() {
   useEffect(() => {
     if (!showResult || !sessionId) return
     const navTimeout = setTimeout(() => {
-      navigate(`/readyup/${sessionId}`, { state: { next: 'chat' } })
+      navigate(`/score/${sessionId}`, { state: { next: 'chat' } })
     }, 2000)
     return () => clearTimeout(navTimeout)
   }, [showResult, sessionId, navigate])

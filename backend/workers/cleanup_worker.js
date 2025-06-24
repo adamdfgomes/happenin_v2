@@ -12,7 +12,6 @@ const READY_TIMEOUT    = 30 * 1_000    // 30 seconds
 const CLEANUP_LOCK_KEY = 43
 
 const processCleanup = throttle(async () => {
-  console.log(`[Cleanup] start at ${new Date().toISOString()}`)
   let actionTaken = false
 
   const gotLock = await acquireLock(CLEANUP_LOCK_KEY)
@@ -45,7 +44,6 @@ const processCleanup = throttle(async () => {
       .or('matched.eq.false,matched.is.null')
 
     if (teamErr) throw teamErr
-    console.log(`[Cleanup] found ${teams.length} unmatched teams across pubs`)
 
     const pubNames = [...new Set(teams.map(t => t.pub_name))]
     const { data: pubs, error: pubErr } = await adminClient
@@ -174,9 +172,6 @@ const processCleanup = throttle(async () => {
       }
     }
 
-    if (!actionTaken) {
-      console.log('[Cleanup] no actions needed')
-    }
   } catch (err) {
     console.error('Cleanup worker error:', err)
   } finally {

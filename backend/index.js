@@ -371,6 +371,40 @@ app.post('/api/sessions/:sessionId/score', async (req, res) => {
   }
 });
 
+// POST /api/sessions/:sessionId/games-played
+app.post('/api/sessions/:sessionId/games-played', async (req, res) => {
+  const { sessionId } = req.params;
+
+  try {
+    // Step 1: Fetch current count
+    const { data: existing, error: fetchErr } = await supabase
+      .from('sessions')
+      .select('games_played')
+      .eq('session_id', sessionId)
+      .single();
+
+    if (fetchErr) throw fetchErr;
+
+    const newValue = (existing.games_played || 0) + 1;
+
+    // Step 2: Update value
+    const { data, error: updateErr } = await supabase
+      .from('sessions')
+      .update({ games_played: newValue })
+      .eq('session_id', sessionId)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    return res.status(200).json({ session: data });
+  } catch (err) {
+    console.error('Failed to increment games_played:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 })

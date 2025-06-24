@@ -357,3 +357,18 @@ export async function setGameOverFlag(
     throw new Error(`Failed to set ${field}: ${text}`)
   }
 }
+
+/**
+ * Increment the games_played counter for a session.
+ */
+export async function incrementGamesPlayed(sessionId: string): Promise<void> {
+  const res = await fetch(`/api/sessions/${sessionId}/games-played`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to increment games_played: ${errText}`);
+  }
+}

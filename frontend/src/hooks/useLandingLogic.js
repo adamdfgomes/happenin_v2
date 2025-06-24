@@ -85,6 +85,8 @@ export default function useLandingLogic(
   // 3️⃣ As soon as both `me.ready` and `them.ready` are true →
   //    if noCountdown === false, first write `in_session = true`, then navigate
   useEffect(() => {
+    // 1) don’t do anything until the initial fetch/subscription is finished
+    if (loading) return
     if (me?.ready && them?.ready && sessionId) {
       if (!noCountdown) {
         // Write in_session = true before navigation
@@ -111,7 +113,7 @@ export default function useLandingLogic(
         navigate(`/${routeBase}/${sessionId}`)
       }
     }
-  }, [me?.ready, them?.ready, sessionId, navigate, routeBase, noCountdown])
+  }, [loading,me?.ready, them?.ready, sessionId, navigate, routeBase, noCountdown])
 
   // 4️⃣ If “I clicked Ready” but time hits zero and opponent did NOT click →
   //    show “too slow” + requeue (skip if noCountdown)

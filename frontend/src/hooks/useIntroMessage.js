@@ -4,7 +4,7 @@ import { useGameSession } from '../context/GameSessionContext'
 import { postMessage } from '../utils/api'
 
 // Single source of truth for the intro-timer length
-const TIME_LIMIT = 30
+const TIME_LIMIT = 3
 // Warn when we're in the last third of the time
 const WARN_THRESHOLD = Math.ceil(TIME_LIMIT * 0.33)
 

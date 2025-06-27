@@ -61,7 +61,9 @@ export const GameSessionProvider: FC<ProviderProps> = ({ children }) => {
   // Clears only session-specific bits so we can re-queue
   const resetSession = () => {
     setSessionId(null)
-    // leave startTime intact so waiting room still has the pub kickoff
+    setSelectedGame(null)
+    setPlayer1Id(null)
+    setPlayer2Id(null)
     setPlayer1Ready(false)
     setPlayer2Ready(false)
   }

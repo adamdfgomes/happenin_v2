@@ -18,10 +18,27 @@ export default function useFetchSelectedGame() {
     setPlayer2Ready,
   } = useGameSession()
 
+  // ── RESET STALE CONTEXT ────────────────────────────────────────────────────────
+  // Whenever sessionId changes, blow away the old IDs/ready flags/gameSel
+  useEffect(() => {
+    setPlayer1Id(null)
+    setPlayer2Id(null)
+    setPlayer1Ready(false)
+    setPlayer2Ready(false)
+    setSelectedGame(null)
+  }, [
+    sessionId,
+    setPlayer1Id,
+    setPlayer2Id,
+    setPlayer1Ready,
+    setPlayer2Ready,
+    setSelectedGame,
+  ])
+
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
 
-  // New local state
+  // local session‐state
   const [p1Score, setP1Score] = useState(0)
   const [p2Score, setP2Score] = useState(0)
   const [p1End,   setP1End]   = useState(false)
@@ -41,6 +58,9 @@ export default function useFetchSelectedGame() {
     setError(null)
 
     async function applyUpdate(sessionRecord) {
+      // clear any prior error
+      setError(null)
+
       const {
         selected_game,
         selectedGame: selectedGameCamel,
@@ -50,7 +70,7 @@ export default function useFetchSelectedGame() {
         p1_gameover,   p2_gameover,
       } = sessionRecord
 
-      // 1️⃣ selectedGame
+      // 1️⃣ game selection
       const gameVal = selected_game ?? selectedGameCamel
       if (gameVal !== undefined) setSelectedGame(gameVal)
 
@@ -58,23 +78,15 @@ export default function useFetchSelectedGame() {
       if (player1_ready !== undefined) setPlayer1Ready(player1_ready)
       if (player2_ready !== undefined) setPlayer2Ready(player2_ready)
 
-      // 3️⃣ fetch team names
+      // 3️⃣ team names & IDs
       const { data: teams, error: teamsErr } = await supabase
         .from('teams')
-        .select('team_id, team_name')
+        .select('team_id,team_name')
         .in('team_id', [player_1, player_2])
-
-      if (!teamsErr) {
-        const p1 = teams.find(t => t.team_id === player_1)
-        const p2 = teams.find(t => t.team_id === player_2)
-        if (p1) {
-          setPlayer1Id(p1.team_id)
-          setP1Name(p1.team_name)
-        }
-        if (p2) {
-          setPlayer2Id(p2.team_id)
-          setP2Name(p2.team_name)
-        }
+      if (!teamsErr && teams) {
+        const m = Object.fromEntries(teams.map(t => [t.team_id, t.team_name]))
+        setPlayer1Id(player_1); setP1Name(m[player_1] ?? null)
+        setPlayer2Id(player_2); setP2Name(m[player_2] ?? null)
       }
 
       // 4️⃣ scores & end flags
@@ -84,21 +96,26 @@ export default function useFetchSelectedGame() {
       if (typeof p2_gameover   === 'boolean') setP2End(p2_gameover)
     }
 
-    // realtime subscriptions
-    const debouncedHandler = ({ new: newRec }) => {
+    // realtime subscription
+    const handler = ({ new: rec }) => {
       clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => applyUpdate(newRec), 50)
+      debounceRef.current = setTimeout(() => applyUpdate(rec), 50)
     }
     const channel = supabase
       .channel(`session_${sessionId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${sessionId}` },
-        debouncedHandler
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `session_id=eq.${sessionId}`,
+        },
+        handler
       )
       .subscribe()
 
-    // initial load
+    // initial GET
     ;(async () => {
       try {
         const res = await fetch(`/api/sessions/${sessionId}`)
@@ -116,11 +133,17 @@ export default function useFetchSelectedGame() {
       supabase.removeChannel(channel)
       clearTimeout(debounceRef.current)
     }
-  }, [sessionId])
+  }, [
+    sessionId,
+    setSelectedGame,
+    setPlayer1Id,
+    setPlayer2Id,
+    setPlayer1Ready,
+    setPlayer2Ready,
+  ])
 
-  // derive me vs them, with unified props
+  // derive “me” vs “them”
   const amI1 = teamId === player1Id
-
   const me = {
     id:       amI1 ? player1Id    : player2Id,
     name:     amI1 ? p1Name        : p2Name,

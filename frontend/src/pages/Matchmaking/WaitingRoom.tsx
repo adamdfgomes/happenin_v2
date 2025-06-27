@@ -1,73 +1,92 @@
+// src/pages/Matchmaking/WaitingRoom.tsx
 import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../../components/Header'
 import { useGameSession } from '../../context/GameSessionContext'
 import useFetchSessionID from '../../hooks/useFetchSessionID'
-import Background from '../../components/Background';
+import useFetchSelectedGame from '../../hooks/useFetchSelectedGame'
+import Background from '../../components/Background'
 
 const WaitingRoom: React.FC = () => {
-  const {
-    startTime,
-    sessionId,      // from context
-    setSessionId,   // setter in context
-  } = useGameSession()
+  const { startTime } = useGameSession()
 
-
-  // Now use your existing hook to expose sessionId
+  // 1️⃣ find our sessionId
   const {
+    sessionId,
     loading: sessionLoading,
-    error: sessionError,
+    error:   sessionError,
   } = useFetchSessionID()
 
+  // 2️⃣ load that session record
+  const {
+    loading: sessionRecLoading,
+    error:   sessionRecError,
+    me:      sessionMe,
+    them:    sessionThem,
+  } = useFetchSelectedGame()
+
+  // ▶️ only “loaded” once sessionId + both loads done + both IDs & names exist
+  const sessionRecordLoaded =
+    Boolean(sessionId) &&
+    !sessionLoading &&
+    !sessionRecLoading &&
+    !sessionRecError &&
+    Boolean(sessionMe?.id) &&
+    Boolean(sessionThem?.id) &&
+    Boolean(sessionMe?.name) &&
+    Boolean(sessionThem?.name)
+
+  // … rest of your countdown & redirect logic unchanged …
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [invalidStartTime, setInvalidStartTime] = useState(false)
-  const navigate = useNavigate()
   const intervalRef = useRef<number | null>(null)
+  const navigate = useNavigate()
+  const didRedirect = useRef(false)
 
-  // Countdown till pub’s start time…
   useEffect(() => {
     if (!startTime) return
-
     const startDate = new Date(startTime)
     if (isNaN(startDate.getTime())) {
       setInvalidStartTime(true)
       return
     }
-
     const tick = () => {
       const diff = startDate.getTime() - Date.now()
       if (diff <= 0) {
         setTimeLeft(0)
-        clearInterval(intervalRef.current!) // eslint-disable-line @typescript-eslint/no-non-null-assertion
+        clearInterval(intervalRef.current!)
         intervalRef.current = null
       } else {
         setTimeLeft(diff)
       }
     }
-
     tick()
     intervalRef.current = window.setInterval(tick, 1000)
     return () => clearInterval(intervalRef.current!)
   }, [startTime])
 
-  // Redirect effect: only when countdown hits zero AND we have a NEW sessionId
   useEffect(() => {
-    if (timeLeft === 0 && sessionId) {
-      navigate(`/landing/${sessionId}`, { state: { next: 'message' } })
+    if (
+      !didRedirect.current &&
+      timeLeft === 0 &&
+      sessionRecordLoaded
+    ) {
+      didRedirect.current = true
+      navigate(`/landing/${sessionId}`, {
+        replace: true,
+        state: { next: 'message' },
+      })
     }
-  }, [timeLeft, sessionId, navigate])
+  }, [timeLeft, sessionRecordLoaded, sessionId, navigate])
 
-  // If supabase says the row has been deleted / error → go home
   useEffect(() => {
     if (sessionError) {
-      console.warn('Session removed, returning to lobby')
       navigate('/')
     }
   }, [sessionError, navigate])
 
-  // --- UI below ---
+  // …UI unchanged…
   if (sessionError) return null
-
   if (!startTime || invalidStartTime) {
     return (
       <main className="min-h-screen bg-red-900 flex flex-col items-center justify-center text-white p-4">
@@ -78,14 +97,14 @@ const WaitingRoom: React.FC = () => {
       </main>
     )
   }
-
+  // formatTime & return JSX…
   const formatTime = (ms: number) => {
-    const hrs = Math.floor(ms / 3_600_000)
+    const hrs  = Math.floor(ms / 3_600_000)
     const mins = Math.floor((ms % 3_600_000) / 60_000)
     const secs = Math.floor((ms % 60_000) / 1000)
-    return `${hrs.toString().padStart(2, '0')}:` +
-           `${mins.toString().padStart(2, '0')}:` +
-           `${secs.toString().padStart(2, '0')}`
+    return `${hrs.toString().padStart(2,'0')}:` +
+           `${mins.toString().padStart(2,'0')}:` +
+           `${secs.toString().padStart(2,'0')}`
   }
 
   return (
